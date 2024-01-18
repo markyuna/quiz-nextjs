@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "./ui/dropdown-menu";
 import UserAvatar from "./UserAvatar";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -41,6 +41,7 @@ const UserAccountNav = ({ user }: Props) => {
             )}
           </div>
         </div>
+
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/">Meow</Link>
