@@ -3,9 +3,16 @@ import Image from 'next/image'
 import { prisma } from '@/lib/db';
 import SignInButton from '@/components/SignInButton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { getAuthSession } from '@/lib/nextauth';
+import { redirect } from 'next/navigation';
 
 
-export default function Home() {
+export default async function Home() {
+  const session = await getAuthSession(); 
+  if (session?.user) {
+    return redirect('/dashboard');
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
