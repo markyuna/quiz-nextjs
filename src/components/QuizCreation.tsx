@@ -3,22 +3,22 @@ import { quizCreationSchema } from "@/schemas/form/quiz";
 import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-// import { zodResolver } from "@hookform/resolvers/zod";
-// import {
-//   Form,
-//   FormControl,
-//   FormDescription,
-//   FormField,
-//   FormItem,
-//   FormLabel,
-//   FormMessage,
-// } from "@/components/ui/form";
-// import { Button } from "../ui/button";
-// import { Input } from "../ui/input";
-// import { BookOpen, CopyCheck } from "lucide-react";
-// import { Separator } from "../ui/separator";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { BookOpen, CopyCheck } from "lucide-react";
+import { Separator } from "./ui/separator";
 import axios, { AxiosError } from "axios";
-// import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useToast } from "./ui/use-toast";
 import { useRouter } from "next/navigation";
 import {
@@ -28,10 +28,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CopyCheck } from "lucide-react";
-// import LoadingQuestions from "../LoadingQuestions";
+import LoadingQuestions from "./LoadingQuestions";
 
-type Props = {
+type Props = { 
   topic: string;
 };
 
@@ -52,39 +51,49 @@ const QuizCreation = ({ topic: topicParam }: Props) => {
   const form = useForm<Input>({
     resolver: zodResolver(quizCreationSchema),
     defaultValues: {
-      topic: topicParam,
-      type: "mcq",
       amount: 3,
+      topic: "",
+      type: "open_ended",
     },
   });
 
-  const onSubmit = async (data: Input) => {
-    setShowLoader(true);
-    getQuestions(data, {
-      onError: (error) => {
-        setShowLoader(false);
-        if (error instanceof AxiosError) {
-          if (error.response?.status === 500) {
-            toast({
-              title: "Error",
-              description: "Something went wrong. Please try again later.",
-              variant: "destructive",
-            });
-          }
-        }
+  const onSubmit = async (input: Input) => {
+    // setShowLoader(true);
+    getQuestions(
+      {
+        amount: input.amount,
+        topic: input.topic,
+        type: input.type,
       },
+     {
+      // onError: (error) => {
+      //   setShowLoader(false);
+      //   if (error instanceof AxiosError) {
+      //     if (error.response?.status === 500) {
+      //       toast({
+      //         title: "Error",
+      //         description: "Something went wrong. Please try again later.",
+      //         variant: "destructive",
+      //       });
+      //     }
+      //   }
+      // },
       onSuccess: ({ gameId }: { gameId: string }) => {
-        setFinishedLoading(true);
-        setTimeout(() => {
-          if (form.getValues("type") === "mcq") {
-            router.push(`/play/mcq/${gameId}`);
-          } else if (form.getValues("type") === "open_ended") {
+        // setFinishedLoading(true);
+        // setTimeout(() => {
+          // if (form.getValues("type") === "mcq") {
+          //   router.push(`/play/mcq/${gameId}`);
+          if (form.getValues("type") === "open_ended") {
             router.push(`/play/open-ended/${gameId}`);
+
+          } else {
+            router.push(`/play/mcq/${gameId}`);
           }
-        }, 2000);
+        },
       },
-    });
+    );
   };
+  
   form.watch();
 
   if (showLoader) {

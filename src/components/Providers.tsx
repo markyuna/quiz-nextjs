@@ -7,14 +7,19 @@ import { type ThemeProviderProps } from "next-themes/dist/types";
 import {
   QueryClient,
   QueryClientProvider,
-  useQuery,
 } from "@tanstack/react-query";
+
 const queryClient = new QueryClient();
 
-const Providers = ({ children }: ThemeProviderProps) => {
+const Providers = ({ children, ...props }: ThemeProviderProps) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+      <NextThemesProvider 
+        attribute="class" 
+        defaultTheme="system" 
+        enableSystem
+        {...props}  
+      >
         <SessionProvider>{children}</SessionProvider>
       </NextThemesProvider>
     </QueryClientProvider>

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getAuthSession } from "@/lib/nextauth";
-import { quizCreationSchema } from "@/schemas/forms/quiz";
+import { quizCreationSchema } from "@/schemas/form/quiz";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import axios from "axios";
@@ -42,7 +42,7 @@ export async function POST(req: Request, res: Response) {
     });
 
     const { data } = await axios.post(
-      `${process.env.API_URL as string}/api/questions`,
+      `${process.env.API_URL}/api/questions`,
       {
         amount,
         topic,
