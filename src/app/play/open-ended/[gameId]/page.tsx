@@ -30,7 +30,7 @@ const OpenEndedPage = async ({ params: { gameId } }: Props) => {
       },
     },
   });
-  if (!game || game.gameType === "mcq") {
+  if (!game || game.gameType === "open_ended") {
     return redirect("/quiz");
   }
   return <OpenEnded game={game} />;

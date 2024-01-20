@@ -12,7 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "./ui/form";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { BookOpen, CopyCheck } from "lucide-react";
@@ -27,7 +27,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "./ui/card";
 import LoadingQuestions from "./LoadingQuestions";
 
 type Props = { 
@@ -51,49 +51,39 @@ const QuizCreation = ({ topic: topicParam }: Props) => {
   const form = useForm<Input>({
     resolver: zodResolver(quizCreationSchema),
     defaultValues: {
+      topic: topicParam,
+      type: "mcq",
       amount: 3,
-      topic: "",
-      type: "open_ended",
     },
   });
 
-  const onSubmit = async (input: Input) => {
-    // setShowLoader(true);
-    getQuestions(
-      {
-        amount: input.amount,
-        topic: input.topic,
-        type: input.type,
-      },
-     {
-      // onError: (error) => {
-      //   setShowLoader(false);
-      //   if (error instanceof AxiosError) {
-      //     if (error.response?.status === 500) {
-      //       toast({
-      //         title: "Error",
-      //         description: "Something went wrong. Please try again later.",
-      //         variant: "destructive",
-      //       });
-      //     }
-      //   }
-      // },
-      onSuccess: ({ gameId }: { gameId: string }) => {
-        // setFinishedLoading(true);
-        // setTimeout(() => {
-          // if (form.getValues("type") === "mcq") {
-          //   router.push(`/play/mcq/${gameId}`);
-          if (form.getValues("type") === "open_ended") {
-            router.push(`/play/open-ended/${gameId}`);
-
-          } else {
-            router.push(`/play/mcq/${gameId}`);
+  const onSubmit = async (data: Input) => {
+    setShowLoader(true);
+    getQuestions(data, {
+      onError: (error) => {
+        setShowLoader(false);
+        if (error instanceof AxiosError) {
+          if (error.response?.status === 500) {
+            toast({
+              title: "Error",
+              description: "Something went wrong. Please try again later.",
+              variant: "destructive",
+            });
           }
-        },
+        }
       },
-    );
+      onSuccess: ({ gameId }: { gameId: string }) => {
+        setFinishedLoading(true);
+        setTimeout(() => {
+          if (form.getValues("type") === "mcq") {
+            router.push(`/play/mcq/${gameId}`);
+          } else if (form.getValues("type") === "open_ended") {
+            router.push(`/play/open-ended/${gameId}`);
+          }
+        }, 2000);
+      },
+    });
   };
-  
   form.watch();
 
   if (showLoader) {

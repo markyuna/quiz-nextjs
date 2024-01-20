@@ -6,7 +6,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "./ui/card";
 import { Button, buttonVariants } from "./ui/button";
 import { differenceInSeconds } from "date-fns";
 import Link from "next/link";
@@ -25,12 +25,14 @@ type Props = {
 
 const MCQ = ({ game }: Props) => {
   const [questionIndex, setQuestionIndex] = React.useState(0);
+  const [selectedChoice, setSelectedChoice] = React.useState<number>(0);
+
   const [hasEnded, setHasEnded] = React.useState(false);
   const [stats, setStats] = React.useState({
     correct_answers: 0,
     wrong_answers: 0,
   });
-  const [selectedChoice, setSelectedChoice] = React.useState<number>(0);
+
   const [now, setNow] = React.useState(new Date());
 
   const currentQuestion = React.useMemo(() => {
@@ -44,16 +46,25 @@ const MCQ = ({ game }: Props) => {
   }, [currentQuestion]);
 
   const { toast } = useToast();
-  const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
-    mutationFn: async () => {
-      const payload: z.infer<typeof checkAnswerSchema> = {
-        questionId: currentQuestion.id,
-        userInput: options[selectedChoice],
-      };
-      const response = await axios.post(`/api/checkAnswer`, payload);
-      return response.data;
-    },
-  });
+  const { mutate: checkAnswer, isLoading: isChecking } = useMutation<
+  // Tipo de datos esperado en la respuesta exitosa
+  { isCorrect: boolean },
+  // Tipo de error esperado
+  Error,
+  // Tipo de datos de la mutación (entrada)
+  { questionId: number; userInput: string },
+  // Tipo de datos de variables adicionales (no utilizadas en este caso)
+  unknown
+>({
+  mutationFn: async () => {
+    const payload: z.infer<typeof checkAnswerSchema> = {
+      questionId: currentQuestion.id,
+      userInput: options[selectedChoice],
+    };
+    const response = await axios.post(`/api/checkAnswer`, payload);
+    return response.data;
+  },
+});
 
   const { mutate: endGame } = useMutation({
     mutationFn: async () => {

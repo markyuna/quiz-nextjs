@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server"; 
 import { strict_output } from "@/lib/gpt";
 import { getAuthSession } from "@/lib/nextauth";
+import { getQuestionsSchema } from "@/schemas/questions";
+import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { quizCreationSchema } from "@/schemas/form/quiz";
 
 export const runtime = "nodejs";
 export const maxDuration = 500;
 
-export const POST = async (req: Request, res: Response) {
+export async function POST(req: Request, res: Response) {
   try {
-    // const session = await getAuthSession();
+    const session = await getAuthSession();
     // if (!session?.user) {
     //   return NextResponse.json(
     //     { error: "You must be logged in to create a game." },
@@ -19,7 +19,7 @@ export const POST = async (req: Request, res: Response) {
     //   );
     // }
     const body = await req.json();
-    const { amount, topic, type } = quizCreationSchema.parse(body);
+    const { amount, topic, type } = getQuestionsSchema.parse(body);
     let questions: any;
     if (type === "open_ended") {
       questions = await strict_output(
@@ -64,7 +64,7 @@ export const POST = async (req: Request, res: Response) {
         }
       );
     } else {
-      console.error("elle gpt error", error);
+      console.error("Error en la solicitud a OpenAI:", error);
       return NextResponse.json(
         { error: "An unexpected error occurred." },
         {
