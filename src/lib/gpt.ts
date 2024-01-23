@@ -1,8 +1,9 @@
-import {OpenAI} from "openai";
+import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// const configuration = new Configuration({
+//   apiKey: process.env.OPENAI_API_KEY,
+// });
+const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY});
 
 interface OutputFormat {
   [key: string]: string | string[] | OutputFormat;
@@ -14,7 +15,7 @@ export async function strict_output(
   output_format: OutputFormat,
   default_category: string = "",
   output_value_only: boolean = false,
-  model: string = "gpt-3.5-turbo",
+  model: string = "gpt-3.5-turbo-1106",
   temperature: number = 1,
   num_tries: number = 3,
   verbose: boolean = false
@@ -53,12 +54,10 @@ export async function strict_output(
       output_format_prompt += `\nGenerate a list of json, one json for each input element.`;
     }
 
-
-
     // Use OpenAI to get a response
     const response = await openai.chat.completions.create({
       temperature: temperature,
-      model: "gpt-3.5-turbo",
+      model: model,
       messages: [
         {
           role: "system",
@@ -66,12 +65,10 @@ export async function strict_output(
         },
         { role: "user", content: user_prompt.toString() },
       ],
-      max_tokens: 64,
-      top_p: 1,
     });
 
     let res: string =
-      response?.data?.choices[0].message?.content?.replace(/'/g, '"') ?? "";
+      response.choices[0].message?.content?.replace(/'/g, '"') ?? "";
 
     // ensure that we don't replace away apostrophes in text
     res = res.replace(/(\w)"(\w)/g, "$1'$2");
@@ -148,3 +145,6 @@ export async function strict_output(
 
   return [];
 }
+
+
+
