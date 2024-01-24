@@ -39,11 +39,14 @@ type Input = z.infer<typeof quizCreationSchema>;
 const QuizCreation = ({ topic: topicParam }: Props) => {
   const router = useRouter();
   const [showLoader, setShowLoader] = React.useState(false);
-  const [finishedLoading, setFinishedLoading] = React.useState(false);
+  const [finished, setFinished] = React.useState(false);
   const { toast } = useToast();
+  
   const { mutate: getQuestions, isLoading } = useMutation({
     mutationFn: async ({ amount, topic, type }: Input) => {
-      const response = await axios.post("/api/game", { amount, topic, type });
+      const response = await axios.post("/api/game", { 
+        amount, topic, type 
+      });
       return response.data;
     },
   });
@@ -51,15 +54,21 @@ const QuizCreation = ({ topic: topicParam }: Props) => {
   const form = useForm<Input>({
     resolver: zodResolver(quizCreationSchema),
     defaultValues: {
-      topic: topicParam,
-      type: "mcq",
       amount: 3,
+      topic: "",
+      type: "open_ended",
     },
   });
 
-  const onSubmit = async (data: Input) => {
+  const onSubmit = async (input: Input) => {
     setShowLoader(true);
-    getQuestions(data, {
+    getQuestions(
+      {
+        amount: input.amount,
+        topic: input.topic,
+        type: input.type,
+      },
+      {
       onError: (error) => {
         setShowLoader(false);
         if (error instanceof AxiosError) {
@@ -73,21 +82,21 @@ const QuizCreation = ({ topic: topicParam }: Props) => {
         }
       },
       onSuccess: ({ gameId }: { gameId: string }) => {
-        setFinishedLoading(true);
+        setFinished(true);
         setTimeout(() => {
-          if (form.getValues("type") === "mcq") {
+          if (form.getValues("type") === "open_ended") {
+            router.push(`/play/open_ended/${gameId}`);
+          } else {
             router.push(`/play/mcq/${gameId}`);
-          } else if (form.getValues("type") === "open_ended") {
-            router.push(`/play/open-ended/${gameId}`);
           }
-        }, 2000);
+        }, 1000);
       },
     });
   };
   form.watch();
 
   if (showLoader) {
-    return <LoadingQuestions finished={finishedLoading} />;
+    return <LoadingQuestions finished={finished} />;
   }
 
   return (
@@ -107,11 +116,10 @@ const QuizCreation = ({ topic: topicParam }: Props) => {
                   <FormItem>
                     <FormLabel>Topic</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter a topic" {...field} />
+                      <Input placeholder="Enter a topic ..." {...field} />
                     </FormControl>
                     <FormDescription>
-                      Please provide any topic you would like to be quizzed on
-                      here.
+                      Please provide any topic here.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -125,7 +133,7 @@ const QuizCreation = ({ topic: topicParam }: Props) => {
                     <FormLabel>Number of Questions</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="How many questions?"
+                        placeholder="Eter amount.."
                         type="number"
                         {...field}
                         onChange={(e) => {
@@ -146,27 +154,29 @@ const QuizCreation = ({ topic: topicParam }: Props) => {
 
               <div className="flex justify-between">
                 <Button
+                  type="button"
+                  className="w-1/2 rounded-none rounded-l-lg"
                   variant={
                     form.getValues("type") === "mcq" ? "default" : "secondary"
                   }
-                  className="w-1/2 rounded-none rounded-l-lg"
                   onClick={() => {
                     form.setValue("type", "mcq");
                   }}
-                  type="button"
                 >
                   <CopyCheck className="w-4 h-4 mr-2" /> Multiple Choice
                 </Button>
+
                 <Separator orientation="vertical" />
+
                 <Button
+                  type="button"
+                  className="w-1/2 rounded-none rounded-r-lg"
                   variant={
                     form.getValues("type") === "open_ended"
                       ? "default"
                       : "secondary"
                   }
-                  className="w-1/2 rounded-none rounded-r-lg"
                   onClick={() => form.setValue("type", "open_ended")}
-                  type="button"
                 >
                   <BookOpen className="w-4 h-4 mr-2" /> Open Ended
                 </Button>

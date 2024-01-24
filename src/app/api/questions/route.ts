@@ -1,4 +1,4 @@
-import { strict_output } from "../../../lib/gpt";
+import { strict_output } from "@/lib/gpt";
 import { getAuthSession } from "@/lib/nextauth";
 import { getQuestionsSchema } from "@/schemas/questions";
 import { NextResponse } from "next/server";
@@ -7,7 +7,7 @@ import { ZodError } from "zod";
 export const runtime = "nodejs";
 export const maxDuration = 500;
 
-export async function POST(req: Request, res: Response) {
+export const GET = async (req: Request, res: Response) {
   try {
     const session = await getAuthSession();
     // if (!session?.user) {
@@ -64,7 +64,7 @@ export async function POST(req: Request, res: Response) {
         }
       );
     } else {
-      console.error("Error en la solicitud a OpenAI:", error);
+      console.error("elle gpt error", error);
       return NextResponse.json(
         { error: "An unexpected error occurred." },
         {

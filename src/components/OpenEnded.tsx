@@ -25,25 +25,30 @@ type Props = {
 };
 
 const OpenEnded = ({ game }: Props) => {
-  const [hasEnded, setHasEnded] = React.useState(false);
   const [questionIndex, setQuestionIndex] = React.useState(0);
-  const [blankAnswer, setBlankAnswer] = React.useState("");
+  const [blankAnswer, setBlankAnswer] = React.useState<string>("");
+  const [hasEnded, setHasEnded] = React.useState<boolean>(false);
+  const [now, setNow] = React.useState<Date>(new Date());
+  const { toast } = useToast();
+
   const [averagePercentage, setAveragePercentage] = React.useState(0);
+
   const currentQuestion = React.useMemo(() => {
     return game.questions[questionIndex];
   }, [questionIndex, game.questions]);
-  const { mutate: endGame } = useMutation({
-    mutationFn: async () => {
-      const payload: z.infer<typeof endGameSchema> = {
-        gameId: game.id,
-      };
-      const response = await axios.post(`/api/endGame`, payload);
-      return response.data;
-    },
-  });
-  const { toast } = useToast();
-  const [now, setNow] = React.useState(new Date());
-  const { mutate: checkAnswer, isLoading: isChecking } = useMutation<any, Error, void, unknown>({
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+    if (!hasEnded) {
+        setNow(new Date());
+      }
+     }, 1000);
+      return () => {
+        clearInterval(interval);
+    }
+  }, [hasEnded]);
+
+  const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
     mutationFn: async () => {
       let filledAnswer = blankAnswer;
       document.querySelectorAll("#user-blank-input").forEach((input) => {
@@ -52,22 +57,15 @@ const OpenEnded = ({ game }: Props) => {
       });
       const payload: z.infer<typeof checkAnswerSchema> = {
         questionId: currentQuestion.id,
-        userInput: filledAnswer,
+        userAnswer: filledAnswer,
       };
-      const response = await axios.post(`/api/checkAnswer`, payload);
+      const response = await axios.post("/api/checkAnswer", payload);
       return response.data;
     },
   });
-  React.useEffect(() => {
-    if (!hasEnded) {
-      const interval = setInterval(() => {
-        setNow(new Date());
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [hasEnded]);
 
   const handleNext = React.useCallback(() => {
+    if (isChecking) return;
     checkAnswer(undefined, {
       onSuccess: ({ percentageSimilar }) => {
         toast({
@@ -91,7 +89,22 @@ const OpenEnded = ({ game }: Props) => {
         });
       },
     });
-  }, [checkAnswer, questionIndex, toast, endGame, game.questions.length]);
+  }, [isChecking, checkAnswer, toast, questionIndex, game.questions.length, endGame]);
+
+
+  const { mutate: endGame } = useMutation({
+    mutationFn: async () => {
+      const payload: z.infer<typeof endGameSchema> = {
+        gameId: game.id,
+      };
+      const response = await axios.post(`/api/endGame`, payload);
+      return response.data;
+    },
+  });
+  
+
+  
+ 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key;

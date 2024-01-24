@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import WordCloud from "../WordCloud";
+import WordCloud from "../CustomWordCloud";
 import { prisma } from "@/lib/db";
 
 type Props = {};

@@ -46,25 +46,17 @@ const MCQ = ({ game }: Props) => {
   }, [currentQuestion]);
 
   const { toast } = useToast();
-  const { mutate: checkAnswer, isLoading: isChecking } = useMutation<
-  // Tipo de datos esperado en la respuesta exitosa
-  { isCorrect: boolean },
-  // Tipo de error esperado
-  Error,
-  // Tipo de datos de la mutación (entrada)
-  { questionId: number; userInput: string },
-  // Tipo de datos de variables adicionales (no utilizadas en este caso)
-  unknown
->({
-  mutationFn: async () => {
-    const payload: z.infer<typeof checkAnswerSchema> = {
-      questionId: currentQuestion.id,
-      userInput: options[selectedChoice],
-    };
-    const response = await axios.post(`/api/checkAnswer`, payload);
-    return response.data;
-  },
-});
+
+  const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
+    mutationFn: async () => {
+      const payload: z.infer<typeof checkAnswerSchema> = {
+        questionId: currentQuestion.id,
+        userInput: options[selectedChoice],
+      };
+      const response = await axios.post(`/api/checkAnswer`, payload);
+      return response.data;
+    },
+  });
 
   const { mutate: endGame } = useMutation({
     mutationFn: async () => {
@@ -120,26 +112,20 @@ const MCQ = ({ game }: Props) => {
   }, [checkAnswer, questionIndex, game.questions.length, toast, endGame]);
 
   React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyPress = (event: KeyboardEvent) => {
       const key = event.key;
 
-      if (key === "1") {
-        setSelectedChoice(0);
-      } else if (key === "2") {
-        setSelectedChoice(1);
-      } else if (key === "3") {
-        setSelectedChoice(2);
-      } else if (key === "4") {
-        setSelectedChoice(3);
+      if (key >= "1" && key <= "4") {
+        setSelectedChoice(parseInt(key) - 1);
       } else if (key === "Enter") {
         handleNext();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyPress);
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyPress);
     };
   }, [handleNext]);
 
@@ -196,31 +182,27 @@ const MCQ = ({ game }: Props) => {
         </CardHeader>
       </Card>
       <div className="flex flex-col items-center justify-center w-full mt-4">
-        {options.map((option, index) => {
-          return (
-            <Button
-              key={option}
-              variant={selectedChoice === index ? "default" : "outline"}
-              className="justify-start w-full py-8 mb-4"
-              onClick={() => setSelectedChoice(index)}
-            >
-              <div className="flex items-center justify-start">
-                <div className="p-2 px-3 mr-5 border rounded-md">
-                  {index + 1}
-                </div>
-                <div className="text-start">{option}</div>
+        {options.map((option, index) => (
+          <Button
+            key={option}
+            variant={selectedChoice === index ? "default" : "outline"}
+            className="justify-start w-full py-8 mb-4"
+            onClick={() => setSelectedChoice(index)}
+          >
+            <div className="flex items-center justify-start">
+              <div className="p-2 px-3 mr-5 border rounded-md">
+                {index + 1}
               </div>
-            </Button>
-          );
-        })}
+              <div className="text-start">{option}</div>
+            </div>
+          </Button>
+        ))}
         <Button
           variant="default"
           className="mt-2"
           size="lg"
           disabled={isChecking || hasEnded}
-          onClick={() => {
-            handleNext();
-          }}
+          onClick={handleNext}
         >
           {isChecking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Next <ChevronRight className="w-4 h-4 ml-2" />

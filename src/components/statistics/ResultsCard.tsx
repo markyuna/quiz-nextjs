@@ -2,6 +2,7 @@ import React from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Award, Trophy } from "lucide-react";
+
 type Props = { accuracy: number };
 
 const ResultsCard = ({ accuracy }: Props) => {
@@ -34,7 +35,7 @@ const ResultsCard = ({ accuracy }: Props) => {
           </>
         ) : (
           <>
-            <Trophy className="mr-4" stroke="brown" size={50} />
+            <Trophy className="mr-4" stroke="silver" size={50} />
             <div className="flex flex-col text-2xl font-semibold text-yellow-800">
               <span className="">Nice try!</span>
               <span className="text-sm text-center text-black opacity-50">

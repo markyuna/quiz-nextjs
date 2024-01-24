@@ -15,7 +15,7 @@ interface Props {
   };
 }
 
-const Quiz = async ({ searchParams }: Props) => {
+const QuizPage = async ({ searchParams }: Props) => {
   const session = await getAuthSession();
   if (!session?.user) {
     redirect("/");
@@ -23,4 +23,4 @@ const Quiz = async ({ searchParams }: Props) => {
   return <QuizCreation topic={searchParams.topic ?? ""} />;
 };
 
-export default Quiz;
+export default QuizPage;
