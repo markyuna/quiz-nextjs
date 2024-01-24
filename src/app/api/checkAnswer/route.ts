@@ -1,13 +1,13 @@
-import { prisma } from "@/lib/db";
 import { checkAnswerSchema } from "@/schemas/questions";
+import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import stringSimilarity from "string-similarity";
+import compareTwoStrings from "string-similarity";
 
 export async function POST(req: Request, res: Response) {
   try {
     const body = await req.json();
-    const { questionId, userInput } = checkAnswerSchema.parse(body);
+    const { questionId, userAnswer } = checkAnswerSchema.parse(body);
     const question = await prisma.question.findUnique({
       where: { id: questionId },
     });
@@ -23,11 +23,11 @@ export async function POST(req: Request, res: Response) {
     }
     await prisma.question.update({
       where: { id: questionId },
-      data: { userAnswer: userInput },
+      data: { userAnswer },
     });
     if (question.questionType === "mcq") {
       const isCorrect =
-        question.answer.toLowerCase().trim() === userInput.toLowerCase().trim();
+        question.answer.toLowerCase().trim() === userAnswer.toLowerCase().trim();
       await prisma.question.update({
         where: { id: questionId },
         data: { isCorrect },
@@ -41,18 +41,21 @@ export async function POST(req: Request, res: Response) {
         }
       );
     } else if (question.questionType === "open_ended") {
-      let percentageSimilar = stringSimilarity.compareTwoStrings(
-        question.answer.toLowerCase().trim(),
-        userInput.toLowerCase().trim()
+      let percentageSimilar = compareTwoStrings(
+        userAnswer.toLowerCase().trim(), 
+        question.answer.toLowerCase().trim()
       );
       percentageSimilar = Math.round(percentageSimilar * 100);
       await prisma.question.update({
         where: { id: questionId },
         data: { percentageCorrect: percentageSimilar },
       });
-      return NextResponse.json({
-        percentageSimilar,
-      });
+      return NextResponse.json(
+        {
+          percentageSimilar,
+        },
+        { status: 200}
+      );
     }
   } catch (error) {
     if (error instanceof ZodError) {

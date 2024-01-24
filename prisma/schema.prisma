@@ -61,20 +61,13 @@ model Game {
   userId      String
   timeStarted DateTime
   topic       String
-  questions   Question[]
   timeEnded   DateTime?
   gameType    GameType
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions   Question[]
 
   @@index([userId], name: "userId")
 }
-
-model topic_count {
-  id    String @id @default(cuid())
-  topic String @unique
-  count Int
-}
-
 model Question {
   id                String   @id @default(cuid())
   question          String
@@ -86,7 +79,13 @@ model Question {
   questionType      GameType
   userAnswer        String?
 
-  game Game @relation(fields: [gameId], references: [id])
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
-  @@index([gameId])
+  @@index([gameId], name: "gameId")
+}
+
+model topic_count {
+  id    String @id @default(cuid())
+  topic String @unique
+  count Int
 }

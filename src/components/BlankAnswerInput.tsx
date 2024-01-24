@@ -6,24 +6,24 @@ type Props = {
   setBlankAnswer: React.Dispatch<React.SetStateAction<string>>;
 };
 
-const blank = "_____";
+const BLANKS = "_____";
 
 const BlankAnswerInput = ({ answer, setBlankAnswer }: Props) => {
   const keywords = React.useMemo(() => {
     const words = keyword_extractor.extract(answer, {
-      language: "english",
+      language: "spanish",
       remove_digits: true,
       return_changed_case: false,
       remove_duplicates: false,
     });
     // mix the keywords and pick 2
-    const shuffled = words.toSorted(() => 0.5 - Math.random());
+    const shuffled = words.toSorted(() => Math.random() - 0.5);
     return shuffled.slice(0, 2);
   }, [answer]);
 
   const answerWithBlanks = React.useMemo(() => {
-    const answerWithBlanks = keywords.reduce((acc, curr) => {
-      return acc.replaceAll(curr, blank);
+    const answerWithBlanks = keywords.reduce((acc, keywords) => {
+      return acc.replace(keywords, BLANKS);
     }, answer);
     setBlankAnswer(answerWithBlanks);
     return answerWithBlanks;
@@ -33,20 +33,18 @@ const BlankAnswerInput = ({ answer, setBlankAnswer }: Props) => {
     <div className="flex justify-start w-full mt-4">
       <h1 className="text-xl font-semibold">
         {/* replace the blanks with input elements */}
-        {answerWithBlanks.split(blank).map((part, index) => {
+        {answerWithBlanks.split(BLANKS).map((part, index) => {
           return (
-            <React.Fragment key={index}>
+            <>
               {part}
-              {index === answerWithBlanks.split(blank).length - 1 ? (
-                ""
-              ) : (
+              {index === answerWithBlanks.split(BLANKS).length - 1 ? null : (
                 <input
                   id="user-blank-input"
                   className="text-center border-b-2 border-black dark:border-white w-28 focus:border-2 focus:border-b-4 focus:outline-none"
                   type="text"
                 />
               )}
-            </React.Fragment>
+            </>
           );
         })}
       </h1>

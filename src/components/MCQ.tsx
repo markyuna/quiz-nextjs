@@ -8,12 +8,12 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Button, buttonVariants } from "./ui/button";
+import MCQCounter from "./MCQCounter";
 import { differenceInSeconds } from "date-fns";
 import Link from "next/link";
 import { BarChart, ChevronRight, Loader2, Timer } from "lucide-react";
 import { checkAnswerSchema, endGameSchema } from "@/schemas/questions";
 import { cn, formatTimeDelta } from "@/lib/utils";
-import MCQCounter from "./MCQCounter";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { z } from "zod";
@@ -24,49 +24,14 @@ type Props = {
 };
 
 const MCQ = ({ game }: Props) => {
+
   const [questionIndex, setQuestionIndex] = React.useState(0);
   const [selectedChoice, setSelectedChoice] = React.useState<number>(0);
-
+  const [correctAnswer, setCorrectAnswer] = React.useState<number>(0);
+  const [wrongAnswer, setWrongAnswer] = React.useState<number>(0);
   const [hasEnded, setHasEnded] = React.useState(false);
-  const [stats, setStats] = React.useState({
-    correct_answers: 0,
-    wrong_answers: 0,
-  });
-
   const [now, setNow] = React.useState(new Date());
-
-  const currentQuestion = React.useMemo(() => {
-    return game.questions[questionIndex];
-  }, [questionIndex, game.questions]);
-
-  const options = React.useMemo(() => {
-    if (!currentQuestion) return [];
-    if (!currentQuestion.options) return [];
-    return JSON.parse(currentQuestion.options as string) as string[];
-  }, [currentQuestion]);
-
   const { toast } = useToast();
-
-  const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
-    mutationFn: async () => {
-      const payload: z.infer<typeof checkAnswerSchema> = {
-        questionId: currentQuestion.id,
-        userInput: options[selectedChoice],
-      };
-      const response = await axios.post(`/api/checkAnswer`, payload);
-      return response.data;
-    },
-  });
-
-  const { mutate: endGame } = useMutation({
-    mutationFn: async () => {
-      const payload: z.infer<typeof endGameSchema> = {
-        gameId: game.id,
-      };
-      const response = await axios.post(`/api/endGame`, payload);
-      return response.data;
-    },
-  });
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -77,58 +42,82 @@ const MCQ = ({ game }: Props) => {
     return () => clearInterval(interval);
   }, [hasEnded]);
 
+  const [stats, setStats] = React.useState({
+    correct_answers: 0,
+    wrong_answers: 0,
+  });
+  
+
+  const currentQuestion = React.useMemo(() => {
+    return game.questions[questionIndex];
+  }, [ questionIndex, game.questions]);
+  
+  const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
+    mutationFn: async () => {
+      const payload: z.infer<typeof checkAnswerSchema> = {
+        questionId: currentQuestion.id,
+        userAnswer: options[selectedChoice],
+      };
+      const response = await axios.post(`/api/checkAnswer`, payload);
+      return response.data;
+    },
+  });
+
   const handleNext = React.useCallback(() => {
+    if (isChecking) return;
     checkAnswer(undefined, {
       onSuccess: ({ isCorrect }) => {
         if (isCorrect) {
-          setStats((stats) => ({
-            ...stats,
-            correct_answers: stats.correct_answers + 1,
-          }));
           toast({
-            title: "Correct",
-            description: "You got it right!",
+            title: "Correct !",
+            description: "Correct Answer",
             variant: "success",
           });
-        } else {
-          setStats((stats) => ({
-            ...stats,
-            wrong_answers: stats.wrong_answers + 1,
-          }));
-          toast({
-            title: "Incorrect",
-            description: "You got it wrong!",
-            variant: "destructive",
-          });
-        }
-        if (questionIndex === game.questions.length - 1) {
-          endGame();
-          setHasEnded(true);
-          return;
-        }
-        setQuestionIndex((questionIndex) => questionIndex + 1);
-      },
+          setCorrectAnswer((prev) => prev + 1);
+      } else {
+        toast({
+          title: "Incorrect!",
+          description: "Incorrect Answer",
+          variant: "destructive",
+        });
+        setWrongAnswer((prev) => prev + 1);
+      }
+      if (questionIndex === game.questions.length - 1) {
+        setHasEnded(true);
+        return;
+      }
+        setQuestionIndex((prev) => prev + 1);
+      }
     });
-  }, [checkAnswer, questionIndex, game.questions.length, toast, endGame]);
+  }, [checkAnswer, toast, isChecking, questionIndex, game.questions.length]);
 
   React.useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      const key = event.key;
-
-      if (key >= "1" && key <= "4") {
-        setSelectedChoice(parseInt(key) - 1);
-      } else if (key === "Enter") {
-        handleNext();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyPress);
-
+    const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key == "1") {
+    setSelectedChoice(0);
+  } else if (event.key == "2") {
+    setSelectedChoice(1);
+  } else if (event.key == "3") {
+    setSelectedChoice(2);
+  } else if (event.key == "4") {
+    setSelectedChoice(3);
+  } else if (event.key == "Enter") {
+    handleNext();
+    }
+  };
+  document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("keydown", handleKeyPress);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleNext]);
 
+  const options = React.useMemo(() => {
+    if (!currentQuestion) return [];
+    if (!currentQuestion.options) return [];
+    return JSON.parse(currentQuestion.options as string) as string[];
+  }, [currentQuestion]);
+
+  
   if (hasEnded) {
     return (
       <div className="absolute flex flex-col justify-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
@@ -147,6 +136,17 @@ const MCQ = ({ game }: Props) => {
     );
   }
 
+  // const { mutate: endGame } = useMutation({
+  //   mutationFn: async () => {
+  //     const payload: z.infer<typeof endGameSchema> = {
+  //       gameId: game.id,
+  //     };
+  //     const response = await axios.post(`/api/endGame`, payload);
+  //     return response.data;
+  //   },
+  // });
+
+
   return (
     <div className="absolute -translate-x-1/2 -translate-y-1/2 md:w-[80vw] max-w-4xl w-[90vw] top-1/2 left-1/2">
       <div className="flex flex-row justify-between">
@@ -164,8 +164,8 @@ const MCQ = ({ game }: Props) => {
           </div>
         </div>
         <MCQCounter
-          correct_answers={stats.correct_answers}
-          wrong_answers={stats.wrong_answers}
+          correct_answers={correctAnswer}
+          wrong_answers={wrongAnswer}
         />
       </div>
       <Card className="w-full mt-4">
@@ -182,12 +182,14 @@ const MCQ = ({ game }: Props) => {
         </CardHeader>
       </Card>
       <div className="flex flex-col items-center justify-center w-full mt-4">
-        {options.map((option, index) => (
+        {options.map((option, index) => ( 
           <Button
             key={option}
-            variant={selectedChoice === index ? "default" : "outline"}
             className="justify-start w-full py-8 mb-4"
-            onClick={() => setSelectedChoice(index)}
+            variant={selectedChoice === index ? "default" : "outline"}
+            onClick={() => {
+              setSelectedChoice(index);
+            }}
           >
             <div className="flex items-center justify-start">
               <div className="p-2 px-3 mr-5 border rounded-md">
@@ -198,8 +200,8 @@ const MCQ = ({ game }: Props) => {
           </Button>
         ))}
         <Button
-          variant="default"
           className="mt-2"
+          variant="default"
           size="lg"
           disabled={isChecking || hasEnded}
           onClick={handleNext}

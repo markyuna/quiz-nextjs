@@ -26,16 +26,16 @@ type Props = {
 
 const OpenEnded = ({ game }: Props) => {
   const [questionIndex, setQuestionIndex] = React.useState(0);
-  const [blankAnswer, setBlankAnswer] = React.useState<string>("");
   const [hasEnded, setHasEnded] = React.useState<boolean>(false);
   const [now, setNow] = React.useState<Date>(new Date());
   const { toast } = useToast();
+  const [blankAnswer, setBlankAnswer] = React.useState<string>("");
 
   const [averagePercentage, setAveragePercentage] = React.useState(0);
 
   const currentQuestion = React.useMemo(() => {
     return game.questions[questionIndex];
-  }, [questionIndex, game.questions]);
+  }, [ questionIndex, game.questions]);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -48,18 +48,15 @@ const OpenEnded = ({ game }: Props) => {
     }
   }, [hasEnded]);
 
+  console.log(currentQuestion.answer);
+
   const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
     mutationFn: async () => {
-      let filledAnswer = blankAnswer;
-      document.querySelectorAll("#user-blank-input").forEach((input) => {
-        filledAnswer = filledAnswer.replace("_____", input.value);
-        input.value = "";
-      });
       const payload: z.infer<typeof checkAnswerSchema> = {
         questionId: currentQuestion.id,
-        userAnswer: filledAnswer,
+        userAnswer: ''
       };
-      const response = await axios.post("/api/checkAnswer", payload);
+      const response = await axios.post(`/api/checkAnswer`, payload);
       return response.data;
     },
   });
@@ -75,7 +72,7 @@ const OpenEnded = ({ game }: Props) => {
           return (prev + percentageSimilar) / (questionIndex + 1);
         });
         if (questionIndex === game.questions.length - 1) {
-          endGame();
+          // endGame();
           setHasEnded(true);
           return;
         }
@@ -89,26 +86,25 @@ const OpenEnded = ({ game }: Props) => {
         });
       },
     });
-  }, [isChecking, checkAnswer, toast, questionIndex, game.questions.length, endGame]);
+  }, [isChecking, checkAnswer, toast, questionIndex, game.questions.length, blankAnswer]);
 
 
-  const { mutate: endGame } = useMutation({
-    mutationFn: async () => {
-      const payload: z.infer<typeof endGameSchema> = {
-        gameId: game.id,
-      };
-      const response = await axios.post(`/api/endGame`, payload);
-      return response.data;
-    },
-  });
+  // const { mutate: endGame } = useMutation({
+  //   mutationFn: async () => {
+  //     const payload: z.infer<typeof endGameSchema> = {
+  //       gameId: game.id,
+  //     };
+  //     const response = await axios.post(`/api/endGame`, payload);
+  //     return response.data;
+  //   },
+  // });
   
 
   
  
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const key = event.key;
-      if (key === "Enter") {
+      if (event.key === "Enter") {
         handleNext();
       }
     };
@@ -163,23 +159,21 @@ const OpenEnded = ({ game }: Props) => {
             </div>
           </CardTitle>
           <CardDescription className="flex-grow text-lg">
-            {currentQuestion?.question}
+            {currentQuestion.question}
           </CardDescription>
         </CardHeader>
       </Card>
       <div className="flex flex-col items-center justify-center w-full mt-4">
-        <BlankAnswerInput
-          setBlankAnswer={setBlankAnswer}
-          answer={currentQuestion.answer}
-        />
+      <BlankAnswerInput answer={currentQuestion.answer} setBlankAnswer={setBlankAnswer}/>
+
         <Button
-          variant="outline"
-          className="mt-4"
+          className="mt-2"
+          // variant="outline"
           disabled={isChecking || hasEnded}
           onClick={() => {
             handleNext();
           }}
-        >
+          >
           {isChecking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Next <ChevronRight className="w-4 h-4 ml-2" />
         </Button>
