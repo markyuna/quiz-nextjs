@@ -30,10 +30,11 @@ const MCQPage = async ({ params: { gameId } }: Props) => {
       },
     },
   });
-  if (!game || game.gameType === "open_ended") {
+  if (!game || game.gameType !== "mcq") {
     return redirect("/quiz");
   }
   return <MCQ game={game} />;
+    
 };
 
-export default MCQPage;
+export default MCQPage;  
