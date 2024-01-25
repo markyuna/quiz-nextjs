@@ -19,7 +19,7 @@ const RecentActivityCard = async (props: Props) => {
   if (!session?.user) {
     return redirect("/");
   }
-  const games_count = await prisma.game.count({
+  const gamesCount = await prisma.game.count({
     where: {
       userId: session.user.id,
     },
@@ -31,7 +31,7 @@ const RecentActivityCard = async (props: Props) => {
           <Link href="/history">Recent Activity</Link>
         </CardTitle>
         <CardDescription>
-          You have played a total of {games_count} quizzes.
+          You have played a total of {gamesCount} quizzes.
         </CardDescription>
       </CardHeader>
       <CardContent className="max-h-[580px] overflow-scroll">

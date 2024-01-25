@@ -52,9 +52,14 @@ const OpenEnded = ({ game }: Props) => {
 
   const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
     mutationFn: async () => {
+      let filledAnswer = blankAnswer
+      document.querySelectorAll('#user-blank-input').forEach(input => {
+        filledAnswer = filledAnswer.replace('_____', input.value)
+        input.value = "";
+      })
       const payload: z.infer<typeof checkAnswerSchema> = {
         questionId: currentQuestion.id,
-        userAnswer: ''
+        userAnswer: filledAnswer,
       };
       const response = await axios.post(`/api/checkAnswer`, payload);
       return response.data;
@@ -67,10 +72,11 @@ const OpenEnded = ({ game }: Props) => {
       onSuccess: ({ percentageSimilar }) => {
         toast({
           title: `Your answer is ${percentageSimilar}% similar to the correct answer`,
+          description: "answer are matched based on similarity comparison",
         });
-        setAveragePercentage((prev) => {
-          return (prev + percentageSimilar) / (questionIndex + 1);
-        });
+        // setAveragePercentage((prev) => {
+        //   return (prev + percentageSimilar) / (questionIndex + 1);
+        // });
         if (questionIndex === game.questions.length - 1) {
           // endGame();
           setHasEnded(true);
@@ -123,7 +129,7 @@ const OpenEnded = ({ game }: Props) => {
         </div>
         <Link
           href={`/statistics/${game.id}`}
-          className={cn(buttonVariants({ size: "lg" }), "mt-2")}
+          className={cn(buttonVariants(), "mt-2")}
         >
           View Statistics
           <BarChart className="w-4 h-4 ml-2" />

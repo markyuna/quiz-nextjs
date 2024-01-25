@@ -10,7 +10,7 @@ import React from "react";
 type Props = {};
 
 export const metadata = {
-  title: "Dashboard | Quizzzy",
+  title: "Dashboard | Quizzy",
   description: "Quiz yourself on anything!",
 };
 

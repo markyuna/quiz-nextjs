@@ -127,7 +127,7 @@ const MCQ = ({ game }: Props) => {
         </div>
         <Link
           href={`/statistics/${game.id}`}
-          className={cn(buttonVariants({ size: "lg" }), "mt-2")}
+          className={cn(buttonVariants(), "mt-2")}
         >
           View Statistics
           <BarChart className="w-4 h-4 ml-2" />

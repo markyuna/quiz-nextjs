@@ -6,7 +6,7 @@ import QuizCreation from "@/components/QuizCreation";
 
 export const metadata = {
   title: "Quiz | Quizzzy",
-  description: "Quiz yourself on anything!",
+  // description: "Quiz yourself on anything!",
 };
 
 interface Props {
@@ -20,7 +20,7 @@ const QuizPage = async ({ searchParams }: Props) => {
   if (!session?.user) {
     redirect("/");
   }
-  return <QuizCreation topic={searchParams.topic ?? ""} />;
+  return <QuizCreation topicParam={searchParams.topic ?? ""} />;
 };
 
 export default QuizPage;

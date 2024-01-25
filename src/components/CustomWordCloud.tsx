@@ -24,19 +24,18 @@ const data = [
     
 ]
 
-
-const CustomWordCloud = (props: Props) => {
+const CustomWordCloud = ({formattedTopics}: Props) => {
   const theme = useTheme();
   const router = useRouter();
   return ( 
     <D3WordCloud
       height={550}
-      data={data}
+      data={formattedTopics}
       font="Times"
       fontSize={fontSizeMapper}
       rotate={0}
       padding={10}
-      fill={theme.theme === "dark" ? "white" : "black"}
+      fill={theme.theme == "dark" ? "white" : "black"}
       onWordClick={(e, d) => {
         router.push("/quiz?topic=" + d.text);
       }}

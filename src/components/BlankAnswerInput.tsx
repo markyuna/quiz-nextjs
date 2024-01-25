@@ -41,7 +41,7 @@ const BlankAnswerInput = ({ answer, setBlankAnswer }: Props) => {
                 <input
                   id="user-blank-input"
                   className="text-center border-b-2 border-black dark:border-white w-28 focus:border-2 focus:border-b-4 focus:outline-none"
-                  type="text"
+                  // type="text"
                 />
               )}
             </>
