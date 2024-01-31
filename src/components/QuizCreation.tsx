@@ -38,16 +38,22 @@ type Input = z.infer<typeof quizCreationSchema>;
 
 const QuizCreation = ({ topicParam }: Props) => {
   const router = useRouter();
+  const [isLoading, setIsLoading] = React.useState(false);
   const [showLoader, setShowLoader] = React.useState(false);
   const [finished, setFinished] = React.useState(false);
   const { toast } = useToast();
   
-  const { mutate: getQuestions, isLoading } = useMutation({
+  const { mutate: getQuestions } = useMutation({
     mutationFn: async ({ amount, topic, type }: Input) => {
-      const response = await axios.post("/api/game", { 
-        amount, topic, type 
-      });
-      return response.data;
+      setIsLoading(true);
+      try {
+        const response = await axios.post("/api/game", { 
+          amount, topic, type 
+        });
+        return response.data;
+      } finally {
+        setIsLoading(false);
+      }
     },
   });
 
@@ -69,6 +75,16 @@ const QuizCreation = ({ topicParam }: Props) => {
         type: input.type,
       },
       {
+      onSuccess: ({ gameId }) => {
+        setFinished(true);
+        setTimeout(() => {
+          if (form.getValues("type") == "open_ended") {
+            router.push(`/play/open-ended/${gameId}`);
+          } else {
+            router.push(`/play/mcq/${gameId}`);
+          }
+        }, 1000);
+      },
       onError: (error) => {
         setShowLoader(false);
         if (error instanceof AxiosError) {
@@ -81,18 +97,9 @@ const QuizCreation = ({ topicParam }: Props) => {
           }
         }
       },
-      onSuccess: ({ gameId }: { gameId: string }) => {
-        setFinished(true);
-        setTimeout(() => {
-          if (form.getValues("type") === "open_ended") {
-            router.push(`/play/open_ended/${gameId}`);
-          } else {
-            router.push(`/play/mcq/${gameId}`);
-          }
-        }, 1000);
-      },
     });
   };
+
   form.watch();
 
   if (showLoader) {
@@ -133,7 +140,7 @@ const QuizCreation = ({ topicParam }: Props) => {
                     <FormLabel>Number of Questions</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Eter amount.."
+                        placeholder="Enter amount.."
                         type="number"
                         {...field}
                         onChange={(e) => {
@@ -160,7 +167,7 @@ const QuizCreation = ({ topicParam }: Props) => {
                     form.getValues("type") === "mcq" ? "default" : "secondary"
                   }
                   onClick={() => {
-                    form.setValue("type", "mcq");
+                    form.setValue("type", "mcq")
                   }}
                 >
                   <CopyCheck className="w-4 h-4 mr-2" /> Multiple Choice
@@ -172,11 +179,11 @@ const QuizCreation = ({ topicParam }: Props) => {
                   type="button"
                   className="w-1/2 rounded-none rounded-r-lg"
                   variant={
-                    form.getValues("type") === "open_ended"
-                      ? "default"
-                      : "secondary"
+                    form.getValues("type") === "open_ended" ? "default" : "secondary"
                   }
-                  onClick={() => form.setValue("type", "open_ended")}
+                  onClick={() => {
+                    form.setValue("type", "open_ended")
+                  }}
                 >
                   <BookOpen className="w-4 h-4 mr-2" /> Open Ended
                 </Button>

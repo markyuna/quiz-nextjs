@@ -25,12 +25,13 @@ type Props = {
 
 const MCQ = ({ game }: Props) => {
 
+  const [isChecking, setIsChecking] = React.useState(false);
   const [questionIndex, setQuestionIndex] = React.useState(0);
   const [selectedChoice, setSelectedChoice] = React.useState<number>(0);
   const [correctAnswer, setCorrectAnswer] = React.useState<number>(0);
   const [wrongAnswer, setWrongAnswer] = React.useState<number>(0);
-  const [hasEnded, setHasEnded] = React.useState(false);
-  const [now, setNow] = React.useState(new Date());
+  const [hasEnded, setHasEnded] = React.useState<boolean>(false);
+  const [now, setNow] = React.useState<Date>(new Date());
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -43,8 +44,8 @@ const MCQ = ({ game }: Props) => {
   }, [hasEnded]);
 
   const [stats, setStats] = React.useState({
-    correct_answers: 0,
-    wrong_answers: 0,
+    correctAnswer: 0,
+    wrongAnswer: 0,
   });
   
 
@@ -52,14 +53,19 @@ const MCQ = ({ game }: Props) => {
     return game.questions[questionIndex];
   }, [ questionIndex, game.questions]);
   
-  const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
+  const { mutate: checkAnswer } = useMutation({
     mutationFn: async () => {
-      const payload: z.infer<typeof checkAnswerSchema> = {
-        questionId: currentQuestion.id,
-        userAnswer: options[selectedChoice],
-      };
-      const response = await axios.post(`/api/checkAnswer`, payload);
-      return response.data;
+      setIsChecking(true);
+      try {
+        const payload: z.infer<typeof checkAnswerSchema> = {
+          questionId: currentQuestion.id,
+          userAnswer: options[selectedChoice],
+        };
+        const response = await axios.post(`/api/checkAnswer`, payload);
+        return response.data;
+      } finally {
+        setIsChecking(false);
+      }
     },
   });
 
@@ -112,8 +118,8 @@ const MCQ = ({ game }: Props) => {
   }, [handleNext]);
 
   const options = React.useMemo(() => {
-    if (!currentQuestion) return [];
-    if (!currentQuestion.options) return [];
+    if (!currentQuestion) return []
+    if (!currentQuestion.options) return []
     return JSON.parse(currentQuestion.options as string) as string[];
   }, [currentQuestion]);
 
@@ -164,8 +170,8 @@ const MCQ = ({ game }: Props) => {
           </div>
         </div>
         <MCQCounter
-          correct_answers={correctAnswer}
-          wrong_answers={wrongAnswer}
+          correctAnswers={correctAnswer}
+          wrongAnswers={wrongAnswer}
         />
       </div>
       <Card className="w-full mt-4">
@@ -182,28 +188,30 @@ const MCQ = ({ game }: Props) => {
         </CardHeader>
       </Card>
       <div className="flex flex-col items-center justify-center w-full mt-4">
-        {options.map((option, index) => ( 
-          <Button
-            key={option}
-            className="justify-start w-full py-8 mb-4"
-            variant={selectedChoice === index ? "default" : "outline"}
-            onClick={() => {
-              setSelectedChoice(index);
-            }}
-          >
-            <div className="flex items-center justify-start">
-              <div className="p-2 px-3 mr-5 border rounded-md">
-                {index + 1}
+        {options.map((option, index) => {
+          return ( 
+            <Button
+              key={index}
+              className="justify-start w-full py-8 mb-4"
+              variant={selectedChoice === index ? "default" : "secondary"}
+              onClick={() => {
+                setSelectedChoice(index);
+              }}
+            >
+              <div className="flex items-center justify-start">
+                <div className="p-2 px-3 mr-5 border rounded-md">
+                  {index + 1}
+                </div>
+                <div className="text-start">{option}</div>
               </div>
-              <div className="text-start">{option}</div>
-            </div>
-          </Button>
-        ))}
+            </Button>
+          )
+        })}
         <Button
           className="mt-2"
           variant="default"
           size="lg"
-          disabled={isChecking || hasEnded}
+          disabled={isChecking}
           onClick={handleNext}
         >
           {isChecking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

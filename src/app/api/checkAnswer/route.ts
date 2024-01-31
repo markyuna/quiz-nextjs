@@ -27,11 +27,13 @@ export async function POST(req: Request, res: Response) {
     });
     if (question.questionType === "mcq") {
       const isCorrect =
-        question.answer.toLowerCase().trim() === userAnswer.toLowerCase().trim();
+        question.answer.toLowerCase().trim() === 
+        userAnswer.toLowerCase().trim();
       await prisma.question.update({
         where: { id: questionId },
         data: { isCorrect },
       });
+      
       return NextResponse.json(
         {
           isCorrect,

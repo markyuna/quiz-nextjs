@@ -15,7 +15,7 @@ import OpenEndedPercentage from "./OpenEndedPercentage";
 import BlankAnswerInput from "./BlankAnswerInput";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { checkAnswerSchema, endGameSchema } from "@/schemas/questions";
+import { checkAnswerSchema, endGameSchema } from "@/schemas/form/questions";
 import axios from "axios";
 import { useToast } from "./ui/use-toast";
 import Link from "next/link";
@@ -29,8 +29,8 @@ const OpenEnded = ({ game }: Props) => {
   const [hasEnded, setHasEnded] = React.useState<boolean>(false);
   const [now, setNow] = React.useState<Date>(new Date());
   const { toast } = useToast();
+  
   const [blankAnswer, setBlankAnswer] = React.useState<string>("");
-
   const [averagePercentage, setAveragePercentage] = React.useState(0);
 
   const currentQuestion = React.useMemo(() => {
@@ -48,15 +48,14 @@ const OpenEnded = ({ game }: Props) => {
     }
   }, [hasEnded]);
 
-  console.log(currentQuestion.answer);
-
   const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
     mutationFn: async () => {
       let filledAnswer = blankAnswer
       document.querySelectorAll('#user-blank-input').forEach(input => {
         filledAnswer = filledAnswer.replace('_____', input.value)
-        input.value = "";
+        input.value = ""
       })
+
       const payload: z.infer<typeof checkAnswerSchema> = {
         questionId: currentQuestion.id,
         userAnswer: filledAnswer,
@@ -74,11 +73,11 @@ const OpenEnded = ({ game }: Props) => {
           title: `Your answer is ${percentageSimilar}% similar to the correct answer`,
           description: "answer are matched based on similarity comparison",
         });
-        // setAveragePercentage((prev) => {
-        //   return (prev + percentageSimilar) / (questionIndex + 1);
-        // });
+        setAveragePercentage((prev) => {
+          return (prev + percentageSimilar) / (questionIndex + 1);
+        });
         if (questionIndex === game.questions.length - 1) {
-          // endGame();
+          endGame();
           setHasEnded(true);
           return;
         }
@@ -92,8 +91,19 @@ const OpenEnded = ({ game }: Props) => {
         });
       },
     });
-  }, [isChecking, checkAnswer, toast, questionIndex, game.questions.length, blankAnswer]);
+  }, [checkAnswer, toast, isChecking, questionIndex, game.questions.length]);
 
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key === "Enter") {
+    handleNext();
+    }
+  };
+  document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleNext]);
 
   // const { mutate: endGame } = useMutation({
   //   mutationFn: async () => {
@@ -104,21 +114,6 @@ const OpenEnded = ({ game }: Props) => {
   //     return response.data;
   //   },
   // });
-  
-
-  
- 
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
-        handleNext();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [handleNext]);
 
   if (hasEnded) {
     return (
@@ -169,13 +164,12 @@ const OpenEnded = ({ game }: Props) => {
           </CardDescription>
         </CardHeader>
       </Card>
-      <div className="flex flex-col items-center justify-center w-full mt-4">
-      <BlankAnswerInput answer={currentQuestion.answer} setBlankAnswer={setBlankAnswer}/>
 
+      <div className="flex flex-col items-center justify-center w-full mt-4">
+        <BlankAnswerInput answer={currentQuestion.answer} setBlankAnswer={setBlankAnswer}/>
         <Button
           className="mt-2"
-          // variant="outline"
-          disabled={isChecking || hasEnded}
+          disabled={isChecking}
           onClick={() => {
             handleNext();
           }}

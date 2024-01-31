@@ -11,7 +11,7 @@ const BLANKS = "_____";
 const BlankAnswerInput = ({ answer, setBlankAnswer }: Props) => {
   const keywords = React.useMemo(() => {
     const words = keyword_extractor.extract(answer, {
-      language: "spanish",
+      language: "english",
       remove_digits: true,
       return_changed_case: false,
       remove_duplicates: false,
@@ -22,8 +22,8 @@ const BlankAnswerInput = ({ answer, setBlankAnswer }: Props) => {
   }, [answer]);
 
   const answerWithBlanks = React.useMemo(() => {
-    const answerWithBlanks = keywords.reduce((acc, keywords) => {
-      return acc.replace(keywords, BLANKS);
+    const answerWithBlanks = keywords.reduce((acc, keyword) => {
+      return acc.replace(keyword, BLANKS);
     }, answer);
     setBlankAnswer(answerWithBlanks);
     return answerWithBlanks;

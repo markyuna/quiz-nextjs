@@ -12,17 +12,6 @@ const fontSizeMapper = (word: { value: number }) => {
 
 }
 
-const data = [
-    { text: "hello", value: 10},
-    { text: "world", value: 15 },
-    { text: "Computer", value: 5 },
-    { text: "something", value: 8 },
-    { text: "NextJS", value: 1000 },
-    { text: "React", value: 1000 },
-    { text: "TypeScript", value: 100 },
-    { text: "Proyect", value: 100 },
-    
-]
 
 const CustomWordCloud = ({formattedTopics}: Props) => {
   const theme = useTheme();
@@ -36,8 +25,8 @@ const CustomWordCloud = ({formattedTopics}: Props) => {
       rotate={0}
       padding={10}
       fill={theme.theme == "dark" ? "white" : "black"}
-      onWordClick={(e, d) => {
-        router.push("/quiz?topic=" + d.text);
+      onWordClick={(event, word) => {
+        router.push(`/quiz?topic=${word.text}`);
       }}
     />
 );

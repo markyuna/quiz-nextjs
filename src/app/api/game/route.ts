@@ -1,16 +1,16 @@
-import { prisma } from "@/lib/db";
 import { getAuthSession } from "@/lib/nextauth";
-import { quizCreationSchema } from "@/schemas/form/quiz";
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { quizCreationSchema } from "@/schemas/form/quiz";
 import axios from "axios";
+import { z } from "zod";
+import { prisma } from "@/lib/db";
 
 export async function POST(req: Request, res: Response) {
   try {
     const session = await getAuthSession();
     if (!session?.user) {
       return NextResponse.json(
-        { error: "You must be logged in to create a game." },
+        { error: "You must be logged in." },
         {
           status: 401,
         }
@@ -26,7 +26,9 @@ export async function POST(req: Request, res: Response) {
         topic,
       },
     })
-    await prisma.topic_count.upsert({
+
+
+    await prisma.topicCount.upsert({
       where: {
         topic,
       },
@@ -79,6 +81,7 @@ export async function POST(req: Request, res: Response) {
       await prisma.question.createMany({
         data: manyData,
       });
+
     } else if (type === "open_ended") {
       type openQuestion = {
         question: string;
@@ -97,6 +100,7 @@ export async function POST(req: Request, res: Response) {
     }
 
     return NextResponse.json({ gameId: game.id }, { status: 200 });
+    
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
