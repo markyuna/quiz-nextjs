@@ -6,6 +6,8 @@ import Providers from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/ui/toaster";
 
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -22,6 +24,7 @@ export default function RootLayout({children}: {
         <Providers>
           <Navbar />
           {children}
+          <SpeedInsights />
           <Toaster />
         </Providers>
       </body>

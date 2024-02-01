@@ -1,7 +1,8 @@
 {
-    "functions": {
-      "app/api/**/*.ts": {
-        "maxDuration": 5 
-      }
+  "public": true,
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 10 
     }
   }
+}

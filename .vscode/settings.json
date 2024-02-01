@@ -8,6 +8,7 @@
         "nextauth",
         "openai",
         "planetscale",
+        "Quizmify",
         "Quizz",
         "tanstack"
     ]
