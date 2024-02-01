@@ -2,7 +2,7 @@ import { checkAnswerSchema } from "@/schemas/questions";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import compareTwoStrings from "string-similarity";
+import { compareTwoStrings } from "string-similarity";
 
 export async function POST(req: Request, res: Response) {
   try {
@@ -33,7 +33,7 @@ export async function POST(req: Request, res: Response) {
         where: { id: questionId },
         data: { isCorrect },
       });
-      
+
       return NextResponse.json(
         {
           isCorrect,

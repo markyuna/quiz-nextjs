@@ -1,9 +1,9 @@
 "use client";
+import React from "react";
 import { cn, formatTimeDelta } from "@/lib/utils";
 import { Game, Question } from "@prisma/client";
 import { differenceInSeconds } from "date-fns";
 import { BarChart, ChevronRight, Loader2, Timer } from "lucide-react";
-import React from "react";
 import {
   Card,
   CardDescription,
@@ -15,7 +15,7 @@ import OpenEndedPercentage from "./OpenEndedPercentage";
 import BlankAnswerInput from "./BlankAnswerInput";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { checkAnswerSchema, endGameSchema } from "@/schemas/form/questions";
+import { checkAnswerSchema, endGameSchema } from "@/schemas/form/quiz";
 import axios from "axios";
 import { useToast } from "./ui/use-toast";
 import Link from "next/link";
@@ -25,6 +25,8 @@ type Props = {
 };
 
 const OpenEnded = ({ game }: Props) => {
+
+  const [isChecking, setIsChecking] = React.useState(false);
   const [questionIndex, setQuestionIndex] = React.useState(0);
   const [hasEnded, setHasEnded] = React.useState<boolean>(false);
   const [now, setNow] = React.useState<Date>(new Date());
@@ -48,20 +50,25 @@ const OpenEnded = ({ game }: Props) => {
     }
   }, [hasEnded]);
 
-  const { mutate: checkAnswer, isLoading: isChecking } = useMutation({
+  const { mutate: checkAnswer } = useMutation({
     mutationFn: async () => {
-      let filledAnswer = blankAnswer
-      document.querySelectorAll('#user-blank-input').forEach(input => {
-        filledAnswer = filledAnswer.replace('_____', input.value)
-        input.value = ""
-      })
+      setIsChecking(true);
+      try {
+        let filledAnswer = blankAnswer
+        document.querySelectorAll('#user-blank-input').forEach(input => {
+          filledAnswer = filledAnswer.replace('_____', input.value)
+          input.value = " "
+        })
 
-      const payload: z.infer<typeof checkAnswerSchema> = {
-        questionId: currentQuestion.id,
-        userAnswer: filledAnswer,
-      };
-      const response = await axios.post(`/api/checkAnswer`, payload);
-      return response.data;
+        const payload: z.infer<typeof checkAnswerSchema> = {
+          questionId: currentQuestion.id,
+          userAnswer: filledAnswer,
+        };
+        const response = await axios.post("/api/checkAnswer", payload);
+        return response.data;
+      } finally {
+        setIsChecking(false);
+      }
     },
   });
 
@@ -77,7 +84,7 @@ const OpenEnded = ({ game }: Props) => {
           return (prev + percentageSimilar) / (questionIndex + 1);
         });
         if (questionIndex === game.questions.length - 1) {
-          endGame();
+          // endGame();
           setHasEnded(true);
           return;
         }
@@ -166,7 +173,11 @@ const OpenEnded = ({ game }: Props) => {
       </Card>
 
       <div className="flex flex-col items-center justify-center w-full mt-4">
-        <BlankAnswerInput answer={currentQuestion.answer} setBlankAnswer={setBlankAnswer}/>
+        <BlankAnswerInput 
+          answer={currentQuestion.answer} 
+          setBlankAnswer={setBlankAnswer}
+        />
+        
         <Button
           className="mt-2"
           disabled={isChecking}

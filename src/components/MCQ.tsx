@@ -12,7 +12,7 @@ import MCQCounter from "./MCQCounter";
 import { differenceInSeconds } from "date-fns";
 import Link from "next/link";
 import { BarChart, ChevronRight, Loader2, Timer } from "lucide-react";
-import { checkAnswerSchema, endGameSchema } from "@/schemas/questions";
+import { checkAnswerSchema, endGameSchema } from "@/schemas/form/quiz";
 import { cn, formatTimeDelta } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
@@ -28,8 +28,10 @@ const MCQ = ({ game }: Props) => {
   const [isChecking, setIsChecking] = React.useState(false);
   const [questionIndex, setQuestionIndex] = React.useState(0);
   const [selectedChoice, setSelectedChoice] = React.useState<number>(0);
-  const [correctAnswer, setCorrectAnswer] = React.useState<number>(0);
-  const [wrongAnswer, setWrongAnswer] = React.useState<number>(0);
+ 
+  const [correctAnswers, setCorrectAnswers] = React.useState<number>(0);
+  const [wrongAnswers, setWrongAnswers] = React.useState<number>(0);
+  
   const [hasEnded, setHasEnded] = React.useState<boolean>(false);
   const [now, setNow] = React.useState<Date>(new Date());
   const { toast } = useToast();
@@ -44,8 +46,8 @@ const MCQ = ({ game }: Props) => {
   }, [hasEnded]);
 
   const [stats, setStats] = React.useState({
-    correctAnswer: 0,
-    wrongAnswer: 0,
+    correctAnswers: 0,
+    wrongAnswers: 0,
   });
   
 
@@ -61,7 +63,7 @@ const MCQ = ({ game }: Props) => {
           questionId: currentQuestion.id,
           userAnswer: options[selectedChoice],
         };
-        const response = await axios.post(`/api/checkAnswer`, payload);
+        const response = await axios.post("/api/checkAnswer", payload);
         return response.data;
       } finally {
         setIsChecking(false);
@@ -75,18 +77,18 @@ const MCQ = ({ game }: Props) => {
       onSuccess: ({ isCorrect }) => {
         if (isCorrect) {
           toast({
-            title: "Correct !",
+            title: "Correct!",
             description: "Correct Answer",
             variant: "success",
           });
-          setCorrectAnswer((prev) => prev + 1);
+          setCorrectAnswers((prev) => prev + 1);
       } else {
         toast({
           title: "Incorrect!",
           description: "Incorrect Answer",
           variant: "destructive",
         });
-        setWrongAnswer((prev) => prev + 1);
+        setWrongAnswers((prev) => prev + 1);
       }
       if (questionIndex === game.questions.length - 1) {
         setHasEnded(true);
@@ -170,8 +172,8 @@ const MCQ = ({ game }: Props) => {
           </div>
         </div>
         <MCQCounter
-          correctAnswers={correctAnswer}
-          wrongAnswers={wrongAnswer}
+          correctAnswers={correctAnswers}
+          wrongAnswers={wrongAnswers}
         />
       </div>
       <Card className="w-full mt-4">

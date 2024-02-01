@@ -25,7 +25,8 @@ export const POST = async (req: Request, res: Response) => {
           ? {
               option1: "1st with max length of 15 words",
               option2: "2nd with max length of 15 words",
-              option3: "3rd with max length of 15 words"
+              option3: "3rd with max length of 15 words",
+              option4: "4th with max length of 15 words",
             }
           : undefined;
 

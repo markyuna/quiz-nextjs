@@ -21,7 +21,7 @@ const QuestionsList = ({ questions }: Props) => {
     return <p>No questions available.</p>;
   }
 
-  const gameType = questions[0]?.questionType;
+  let gameType = questions[0]?.questionType;
 
   return (
     <Table className="mt-4">
@@ -32,38 +32,46 @@ const QuestionsList = ({ questions }: Props) => {
           <TableHead>Question & Correct Answer</TableHead>
           <TableHead>Your Answer</TableHead>
 
-          {questions[0].questionType === "open_ended" && (
+          {gameType === "open_ended" && (
             <TableHead className="w-[10px] text-right">Accuracy</TableHead>
           )}
         </TableRow>
       </TableHeader>
       <TableBody>
         <>
-        {questions.map(({ id, answer, question, userAnswer, percentageCorrect, isCorrect }) => (
-          <TableRow key={id}>
-            <TableCell className="font-medium">{id}</TableCell>
+        {questions.map((question, index) => {
+          return (
+          <TableRow key={question.id}>
+            <TableCell className="font-medium">{index + 1}</TableCell>
             <TableCell>
-              {question} <br />
+              {question.question} 
               <br />
-              <span className="font-semibold">{answer}</span>
+              <br />
+              <span className="font-semibold">{question.answer}</span>
             </TableCell>
-            {questions[0].questionType === "open_ended" ? (
-              <TableCell className={`font-semibold`}>
-                {userAnswer}
-              </TableCell>
-            ) : (
-              <TableCell className={`${isCorrect ? "text-green-600" : "text-red-600"} font-semibold`}>
-                {userAnswer}
+            {gameType === "mcq" && (
+            
+              <TableCell 
+                className={cn({
+                  "text-green-600" : question.isCorrect,
+                  "text-red-600" : !question.isCorrect,
+                })}
+              >
+                {question.userAnswer}
               </TableCell>
             )}
 
-            {percentageCorrect && (
+            {gameType === "open_ended" && (
+              <TableCell>{question.userAnswer}</TableCell>
+            )}
+            {gameType === "open_ended" && (
               <TableCell className="text-right">
-                {percentageCorrect}
+                {question.percentageCorrect}
               </TableCell>
             )}
           </TableRow>
-        ))}
+          );
+        })}
         </>
       </TableBody>
     </Table>

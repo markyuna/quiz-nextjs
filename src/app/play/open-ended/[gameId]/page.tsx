@@ -1,8 +1,9 @@
+
+import React from "react";
 import OpenEnded from "@/components/OpenEnded";
 import { prisma } from "@/lib/db";
 import { getAuthSession } from "@/lib/nextauth";
 import { redirect } from "next/navigation";
-import React from "react";
 
 type Props = {
   params: {
@@ -30,7 +31,7 @@ const OpenEndedPage = async ({ params: { gameId } }: Props) => {
       },
     },
   });
-  if (!game || game.gameType === "open_ended") {
+  if (!game || game.gameType !== "open_ended") {
     return redirect("/quiz");
   }
   return <OpenEnded game={game} />;
