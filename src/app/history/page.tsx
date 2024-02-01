@@ -1,15 +1,15 @@
+import React from "react";
 import HistoryComponent from "@/components/HistoryComponent";
 import { getAuthSession } from "@/lib/nextauth";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import React from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { LucideLayoutDashboard } from "lucide-react";
 
 type Props = {};
 
-const History = async (props: Props) => {
+const HistoryPage = async (props: Props) => {
   const session = await getAuthSession();
   if (!session?.user) {
     return redirect("/");
@@ -34,4 +34,4 @@ const History = async (props: Props) => {
   );
 };
 
-export default History;
+export default HistoryPage;

@@ -52,7 +52,8 @@ export async function POST(req: Request, res: Response) {
       }
     );
 
-    if (type === "mcq") {
+    if (type == "mcq") {
+      console.log("meow", data.questions);
       type mcqQuestion = {
         question: string;
         answer: string;
@@ -61,13 +62,13 @@ export async function POST(req: Request, res: Response) {
         option3: string;
       };
 
-      const manyData = data.questions.map((question: mcqQuestion) => {
+      let manyData = data.questions.map((question: mcqQuestion) => {
         // mix up the options lol
-        const options = [
+        let options = [
+          question.answer,
           question.option1,
           question.option2,
           question.option3,
-          question.answer,
         ].sort(() => Math.random() - 0.5);
         return {
           question: question.question,

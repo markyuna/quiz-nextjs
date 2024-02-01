@@ -14,11 +14,12 @@ const loadingTexts = [
 ];
 
 const LoadingQuestions = ({ finished }: Props) => {
-  const [progress, setProgress] = React.useState(10);
+  const [progress, setProgress] = React.useState(0);
   const [loadingText, setLoadingText] = React.useState(loadingTexts[0]);
+
   React.useEffect(() => {
     const interval = setInterval(() => {
-      let randomIndex = Math.floor(Math.random() * loadingTexts.length);
+      const randomIndex = Math.floor(Math.random() * loadingTexts.length);
       setLoadingText(loadingTexts[randomIndex]);
     }, 2000);
     return () => clearInterval(interval);
@@ -46,7 +47,7 @@ const LoadingQuestions = ({ finished }: Props) => {
         src={"/loading.gif"} 
         width={400} 
         height={400} 
-        alt="loading" />
+        alt="loading animation" />
       <Progress value={progress} className="w-full mt-4" />
       <h1 className="mt-2 text-xl">{loadingText}</h1>
     </div>

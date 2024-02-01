@@ -144,7 +144,7 @@ const MCQ = ({ game }: Props) => {
     );
   }
 
-  // const { mutate: endGame } = useMutation({
+  // const { mutate: endGame } = React.useMutation({
   //   mutationFn: async () => {
   //     const payload: z.infer<typeof endGameSchema> = {
   //       gameId: game.id,
