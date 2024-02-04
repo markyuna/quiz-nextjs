@@ -132,7 +132,7 @@ const QuizCreation = ({ topicParam }: Props) => {
                   </FormItem>
                 )}
               />
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
@@ -157,7 +157,7 @@ const QuizCreation = ({ topicParam }: Props) => {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
 
               <div className="flex justify-between">
                 <Button

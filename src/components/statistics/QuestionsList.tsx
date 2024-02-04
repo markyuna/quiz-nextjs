@@ -47,14 +47,14 @@ const QuestionsList = ({ questions }: Props) => {
               {question.question} 
               <br />
               <br />
-              <span className="font-semibold">{question.answer}</span>
+              <span className="font-semibold text-green-600">{question.answer}</span>
             </TableCell>
             {gameType === "mcq" && (
             
               <TableCell 
                 className={cn({
-                  "text-green-600" : question.isCorrect,
-                  "text-red-600" : !question.isCorrect,
+                  "font-semibold text-green-600" : question.isCorrect,
+                  "font-semibold text-red-600" : !question.isCorrect,
                 })}
               >
                 {question.userAnswer}

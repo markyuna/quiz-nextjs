@@ -47,7 +47,7 @@ export async function strict_output(
         messages: [
           { role: "system", content: system_prompt + output_format_prompt + error_msg },
           { role: "user", content: user_prompt.toString() },
-        ], 
+        ],
       });
 
       let res: string = response.choices[0].message?.content?.replace(/'/g, '"') ?? "";
@@ -112,3 +112,5 @@ export async function strict_output(
     return [];
   }
 }
+
+
