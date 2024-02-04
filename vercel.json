@@ -2,6 +2,7 @@
   "version": 2,
   "builds": [
     {
+      "redirect_uri_mismatch": "https://quiz-nextjs-h0k8sd1xm-markyuna.vercel.app/api/auth/callback/google",
       "src": "src/app/api/**/*.ts",
       "use": "@vercel/node",
       "config": {

@@ -15,6 +15,7 @@ swap_size_mb = 512
 
 [deploy]
   release_command = "bin/rails db:prepare"
+   redirect_uri_mismatch
 
 
 [http_service]
