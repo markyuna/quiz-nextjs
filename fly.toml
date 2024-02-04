@@ -6,7 +6,16 @@
 app = "quizzzy"
 primary_region = "sin"
 
+kill_signal = "SIGTERM"
+swap_size_mb = 512
+
 [build]
+  builder = "paketobuildpacks/builder:base"
+  buildpacks = ["gcr.io/paketo-buildpacks/nodejs"]
+
+[deploy]
+  release_command = "bin/rails db:prepare"
+
 
 [http_service]
   internal_port = 3000

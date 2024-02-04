@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "quiz-nextjs",
+    "slug": "quiz-nextjs",
+    "version": "0.1.0",
+    "sdkVersion": "48.0.0",
+    "platforms": [],
+    "android": {
+      "package": "com.markyuna.quiznextjs"
+    }
+  }
+}
