@@ -4,7 +4,7 @@ import { strict_output } from "@/lib/gpt";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 300;
+export const maxDuration = 10;
 
 export const POST = async (req: Request, res: Response) => {
   try {
