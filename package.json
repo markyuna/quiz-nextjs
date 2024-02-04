@@ -53,8 +53,8 @@
     "types-react-query": "^0.0.2-beta.1",
     "uuid": "^9.0.1",
     "zod": "^3.22.4",
-    "expo": "~48.0.21",
-    "expo-splash-screen": "~0.18.2",
+    "expo": "~50.0.4",
+    "expo-splash-screen": "~0.26.4",
     "expo-status-bar": "~1.4.4",
     "react-native": "0.71.14"
   },
