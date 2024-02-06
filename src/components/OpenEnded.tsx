@@ -15,7 +15,7 @@ import OpenEndedPercentage from "./OpenEndedPercentage";
 import BlankAnswerInput from "./BlankAnswerInput";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { checkAnswerSchema, endGameSchema } from "@/schemas/form/quiz";
+import { checkAnswerSchema } from "@/schemas/form/quiz";
 import axios from "axios";
 import { useToast } from "./ui/use-toast";
 import Link from "next/link";
@@ -77,8 +77,8 @@ const OpenEnded = ({ game }: Props) => {
     checkAnswer(undefined, {
       onSuccess: ({ percentageSimilar }) => {
         toast({
-          title: `Your answer is ${percentageSimilar}% similar to the correct answer`,
-          description: "answer are matched based on similarity comparison",
+          title: `Votre réponse est ${percentageSimilar}% similaire à la bonne réponse`,
+          description: "les réponses correspondent sur la base d'une comparaison de similarité",
         });
         setAveragePercentage((prev) => {
           return (prev + percentageSimilar) / (questionIndex + 1);
@@ -93,8 +93,8 @@ const OpenEnded = ({ game }: Props) => {
       onError: (error) => {
         console.error(error);
         toast({
-          title: "Something went wrong",
-          variant: "destructive",
+          title: "Quelque chose s'est mal passé",
+          variant: 'destructeur',
         });
       },
     });
@@ -126,14 +126,14 @@ const OpenEnded = ({ game }: Props) => {
     return (
       <div className="absolute flex flex-col justify-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
         <div className="px-4 py-2 mt-2 font-semibold text-white bg-green-500 rounded-md whitespace-nowrap">
-          You Completed in{" "}
+        Vous avez terminé en{" "}
           {formatTimeDelta(differenceInSeconds(now, game.timeStarted))}
         </div>
         <Link
           href={`/statistics/${game.id}`}
           className={cn(buttonVariants(), "mt-2")}
         >
-          View Statistics
+          Afficher les statistiques
           <BarChart className="w-4 h-4 ml-2" />
         </Link>
       </div>
@@ -146,7 +146,7 @@ const OpenEnded = ({ game }: Props) => {
         <div className="flex flex-col">
           {/* topic */}
           <p>
-            <span className="text-slate-400">Topic</span> &nbsp;
+            <span className="text-slate-400">Sujet</span> &nbsp;
             <span className="px-2 py-1 text-white rounded-lg bg-slate-800">
               {game.topic}
             </span>
@@ -186,7 +186,7 @@ const OpenEnded = ({ game }: Props) => {
           }}
           >
           {isChecking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Next <ChevronRight className="w-4 h-4 ml-2" />
+          Suivant <ChevronRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
     </div>

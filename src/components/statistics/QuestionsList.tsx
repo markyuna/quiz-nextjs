@@ -18,7 +18,7 @@ type Props = {
 
 const QuestionsList = ({ questions }: Props) => {
   if (!questions || questions.length === 0) {
-    return <p>No questions available.</p>;
+    return <p>Aucune question disponible.</p>;
   }
 
   let gameType = questions[0]?.questionType;

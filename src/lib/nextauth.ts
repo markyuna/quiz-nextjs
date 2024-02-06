@@ -16,12 +16,11 @@ declare module "next-auth" {
       // role: UserRole;
     } & DefaultSession["user"];
   }
-
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    id: string;
+  }
 }
+
 
 declare module "next-auth/jwt" {
   interface JWT {

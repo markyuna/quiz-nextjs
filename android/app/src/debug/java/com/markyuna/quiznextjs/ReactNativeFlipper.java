@@ -29,6 +29,11 @@ import okhttp3.OkHttpClient;
  * flavor of it. Here you can add your own plugins and customize the Flipper setup.
  */
 public class ReactNativeFlipper {
+  private ReactNativeFlipper() {
+    // private constructor to hide the implicit public one
+    
+  }
+
   public static void initializeFlipper(Context context, ReactInstanceManager reactInstanceManager) {
     if (FlipperUtils.shouldEnableFlipper(context)) {
       final FlipperClient client = AndroidFlipperClient.getInstance(context);
