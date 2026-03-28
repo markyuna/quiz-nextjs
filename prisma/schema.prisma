@@ -1,13 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider     = "mysql"
+  provider     = "postgresql"
   url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
   relationMode = "prisma"
 }
 
@@ -27,7 +25,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@index([userId])
+  @@index([userId], map: "account_userId_idx")
 }
 
 model Session {
@@ -37,7 +35,7 @@ model Session {
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], name: "userId")
+  @@index([userId], map: "session_userId_idx")
 }
 
 model User {
@@ -66,7 +64,7 @@ model Game {
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   questions   Question[]
 
-  @@index([userId], name: "userId")
+  @@index([userId], map: "game_userId_idx")
 }
 
 model TopicCount {
@@ -74,18 +72,19 @@ model TopicCount {
   topic String @unique
   count Int
 }
+
 model Question {
   id                String   @id @default(cuid())
   question          String
   answer            String
   gameId            String
-  options           Json? // for mcq questions
-  percentageCorrect Float? // for open_ended questions
-  isCorrect         Boolean? // for mcq questions
+  options           Json?
+  percentageCorrect Float?
+  isCorrect         Boolean?
   questionType      GameType
   userAnswer        String?
 
   game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
-  @@index([gameId], name: "gameId")
+  @@index([gameId], map: "question_gameId_idx")
 }
