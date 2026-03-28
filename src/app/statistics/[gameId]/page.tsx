@@ -1,80 +1,92 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { LucideLayoutDashboard } from "lucide-react";
+
 import { buttonVariants } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
 import { getAuthSession } from "@/lib/nextauth";
-import { LucideLayoutDashboard } from "lucide-react";
-import Link from "next/link";
-
-import { redirect } from "next/navigation";
-import React from "react";
 import ResultsCard from "@/components/statistics/ResultsCard";
 import AccuracyCard from "@/components/statistics/AccuracyCard";
 import TimeTakenCard from "@/components/statistics/TimeTakenCard";
 import QuestionsList from "@/components/statistics/QuestionsList";
 
-type Props = {
+type StatisticsPageProps = {
   params: {
     gameId: string;
   };
 };
 
-const StatisticsPage = async ({ params: { gameId } }: Props) => {
+export const metadata = {
+  title: "Statistics | Quizmify",
+  description: "Review your quiz results and answers.",
+};
+
+export default async function StatisticsPage({
+  params: { gameId },
+}: StatisticsPageProps) {
   const session = await getAuthSession();
+
   if (!session?.user) {
-    return redirect("/");
+    redirect("/");
   }
-  const game = await prisma.game.findUnique({
-    where: { id: gameId },
-    include: { questions: true },
+
+  const game = await prisma.game.findFirst({
+    where: {
+      id: gameId,
+      userId: session.user.id,
+    },
+    include: {
+      questions: true,
+    },
   });
+
   if (!game) {
-    return redirect("/quiz");
+    redirect("/quiz");
   }
 
-  let accuracy: number = 0;
+  let accuracy = 0;
 
-  if (game.gameType === "mcq") {
-    let totalCorrect = game.questions.reduce((acc, question) => {
-      if (question.isCorrect) {
-        return acc + 1;
-      }
-      return acc;
-    }, 0);
+  if (game.questions.length > 0) {
+    if (game.gameType === "mcq") {
+      const totalCorrect = game.questions.reduce((acc, question) => {
+        return acc + (question.isCorrect ? 1 : 0);
+      }, 0);
 
-    accuracy = (totalCorrect / game.questions.length) * 100;
-  } else if (game.gameType === "open_ended") {
-    let totalPercentage = game.questions.reduce((acc, question) => {
-      return acc + (question.percentageCorrect ?? 0);
-    }, 0);
+      accuracy = (totalCorrect / game.questions.length) * 100;
+    }
 
-    accuracy = (totalPercentage / game.questions.length);
+    if (game.gameType === "open_ended") {
+      const totalPercentage = game.questions.reduce((acc, question) => {
+        return acc + (question.percentageCorrect ?? 0);
+      }, 0);
+
+      accuracy = totalPercentage / game.questions.length;
+    }
   }
+
   accuracy = Math.round(accuracy * 100) / 100;
 
   return (
-    // <>
-      <div className="p-8 mx-auto max-w-7xl">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Statistiques</h2>
-          <div className="flex items-center space-x-2">
-            <Link href="/dashboard" className={buttonVariants()}>
-              <LucideLayoutDashboard className="mr-2" />
-              Retour au tableau de bord
-            </Link>
-          </div>
-        </div>
+    <main className="mx-auto max-w-7xl p-6 md:p-8">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Statistics</h1>
 
-        <div className="grid gap-4 mt-4 md:grid-cols-7">
-          <ResultsCard accuracy={accuracy} />
-          <AccuracyCard accuracy={accuracy} />
-          <TimeTakenCard
-            timeEnded={new Date()}
-            timeStarted={game.timeStarted}
-          />
-        </div>
-        <QuestionsList questions={game.questions} />
+        <Link href="/dashboard" className={buttonVariants()}>
+          <LucideLayoutDashboard className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Link>
       </div>
-    // </>
-  );
-};
 
-export default StatisticsPage;
+      <section className="mt-6 grid gap-4 md:grid-cols-7">
+        <ResultsCard accuracy={accuracy} />
+        <AccuracyCard accuracy={accuracy} />
+        <TimeTakenCard
+          timeEnded={game.timeEnded ?? new Date()}
+          timeStarted={game.timeStarted}
+        />
+      </section>
+
+      <QuestionsList questions={game.questions} />
+    </main>
+  );
+}
