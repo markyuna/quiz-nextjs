@@ -5,38 +5,35 @@ import QuizMeCard from "@/components/dashboard/QuizMeCard";
 import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import { getAuthSession } from "@/lib/nextauth";
 import { redirect } from "next/navigation";
-import React from "react";
-
-type Props = {};
 
 export const metadata = {
-  title: "Dashboard | Quizzy",
-  description: "Quiz yourself on anything!",
+  title: "Dashboard | Quizmify",
+  description: "Track your activity and start new quizzes.",
 };
 
-const Dasboard = async (props: Props) => {
+export default async function DashboardPage() {
   const session = await getAuthSession();
+
   if (!session?.user) {
     redirect("/");
   }
 
   return (
-    <main className="p-8 mx-auto max-w-7xl">
-      <div className="flex items-center">
-        <h2 className="mr-2 text-3xl font-bold tracking-tight">Dashboard</h2>
+    <main className="mx-auto max-w-7xl p-6 md:p-8">
+      <div className="flex items-center gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <DetailsDialog />
       </div>
 
-      <div className="grid gap-4 mt-4 md:grid-cols-2">
+      <section className="mt-6 grid gap-4 md:grid-cols-2">
         <QuizMeCard />
         <HistoryCard />
-      </div>
-      <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-7">
+      </section>
+
+      <section className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <HotTopicsCard />
         <RecentActivityCard />
-      </div>
+      </section>
     </main>
   );
-};
-
-export default Dasboard;
+}

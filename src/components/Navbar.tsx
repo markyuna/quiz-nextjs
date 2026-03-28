@@ -1,41 +1,30 @@
 import Link from "next/link";
-import React from "react";
-import Image from 'next/image'
-
-import UserAccountNav from "./UserAccountNav";
-import { ThemeToggle } from "./ThemeToggle";
 import { getAuthSession } from "@/lib/nextauth";
 import SignInButton from "./SignInButton";
+import UserAccountNav from "./UserAccountNav";
+import { ThemeToggle } from "./ThemeToggle";
 
-const Navbar = async () => {
+export default async function Navbar() {
   const session = await getAuthSession();
-  
+
   return (
-    <div className="fixed inset-x-0 top-0 bg-white dark:bg-gray-950 z-[10] h-fit border-b border-zinc-300  py-2 ">
-      <div className="flex items-center justify-between h-full gap-2 px-8 mx-auto max-w-7xl">
-        {/* Logo */}
-        {/* <Image 
-          src="/logo.png"
-          alt="Quizzzy Logo"
-          width={100}
-          height={80}
-        /> */}
-        <Link href={"/"} className="flex items-center gap-2">
-          <p className="rounded-lg border-2 border-b-4 border-r-4 border-black px-2 py-1 text-xl font-bold transition-all hover:-translate-y-[2px] md:block dark:border-white">
-            Quizzzy
-          </p>
+    <header className="fixed inset-x-0 top-0 z-10 border-b border-zinc-300 bg-white/95 py-2 backdrop-blur dark:bg-gray-950/95">
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="rounded-lg border-2 border-b-4 border-r-4 border-black px-3 py-1 text-xl font-bold transition-transform hover:-translate-y-[2px] dark:border-white">
+            Quizmify
+          </span>
         </Link>
-        <div className="flex items-center">
-          <ThemeToggle className="mr-4" />
+
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
           {session?.user ? (
             <UserAccountNav user={session.user} />
           ) : (
-            <SignInButton text={"Sign In"} />
+            <SignInButton text="Sign In" />
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
-};
-
-export default Navbar;
+}

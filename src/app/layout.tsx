@@ -1,31 +1,33 @@
-import { cn } from "@/lib/utils";
-import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Providers from "@/components/Providers";
-import Navbar from "@/components/Navbar";
-import { Toaster } from "@/components/ui/toaster";
+import "./globals.css";
 
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import Navbar from "@/components/Navbar";
+import Providers from "@/components/Providers";
+import { Toaster } from "@/components/ui/toaster";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Quizmify",
-  description: "Quiz yourself on anything!",
+  description: "Quiz yourself on anything with AI-powered quizzes.",
 };
 
-export default function RootLayout({children}: {
+export default function RootLayout({
+  children,
+}: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={cn(inter.className, "antialiased min-h-screen pt-16")}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn(inter.className, "min-h-screen antialiased")}>
         <Providers>
           <Navbar />
-          {children}
-          <SpeedInsights />
+          <main className="pt-16">{children}</main>
           <Toaster />
+          <SpeedInsights />
         </Providers>
       </body>
     </html>

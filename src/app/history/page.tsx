@@ -1,37 +1,42 @@
-import React from "react";
-import HistoryComponent from "@/components/HistoryComponent";
-import { getAuthSession } from "@/lib/nextauth";
-import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { redirect } from "next/navigation";
 import { LucideLayoutDashboard } from "lucide-react";
 
-type Props = {};
+import HistoryComponent from "@/components/HistoryComponent";
+import { getAuthSession } from "@/lib/nextauth";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const HistoryPage = async (props: Props) => {
+export const metadata = {
+  title: "History | Quizmify",
+  description: "Review your quiz history.",
+};
+
+export default async function HistoryPage() {
   const session = await getAuthSession();
+
   if (!session?.user) {
-    return redirect("/");
+    redirect("/");
   }
+
   return (
-    <div className="absolute -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 w-[400px]">
-      <Card>
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl items-center justify-center px-4 py-10">
+      <Card className="w-full">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-2xl font-bold">History</CardTitle>
-            <Link className={buttonVariants()} href="/dashboard">
-              <LucideLayoutDashboard className="mr-2" />
+
+            <Link href="/dashboard" className={buttonVariants()}>
+              <LucideLayoutDashboard className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Link>
           </div>
         </CardHeader>
-        <CardContent className="max-h-[60vh] overflow-scroll">
+
+        <CardContent className="max-h-[60vh] overflow-y-auto">
           <HistoryComponent limit={100} userId={session.user.id} />
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
-};
-
-export default HistoryPage;
+}

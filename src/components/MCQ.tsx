@@ -1,214 +1,208 @@
 "use client";
-import { Game, Question } from "@prisma/client";
-import React from "react";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
-import { Button, buttonVariants } from "./ui/button";
-import MCQCounter from "./MCQCounter";
-import { differenceInSeconds } from "date-fns";
+
+import * as React from "react";
 import Link from "next/link";
-import { BarChart, ChevronRight, Loader2, Timer } from "lucide-react";
-import { checkAnswerSchema, endGameSchema } from "@/schemas/form/quiz";
-import { cn, formatTimeDelta } from "@/lib/utils";
-import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { z } from "zod";
-import { useToast } from "./ui/use-toast";
+import { differenceInSeconds } from "date-fns";
+import { useMutation } from "@tanstack/react-query";
+import { BarChart, ChevronRight, Loader2, Timer } from "lucide-react";
+import { Game, Question } from "@prisma/client";
 
-type Props = {
-  game: Game & { questions: Pick<Question, "id" | "options" | "question">[] };
+import MCQCounter from "./MCQCounter";
+import { Button, buttonVariants } from "./ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { useToast } from "./ui/use-toast";
+import { checkAnswerSchema } from "@/schemas/form/quiz";
+import { cn, formatTimeDelta } from "@/lib/utils";
+
+type MCQProps = {
+  game: Game & {
+    questions: Pick<Question, "id" | "options" | "question">[];
+  };
 };
 
-const MCQ = ({ game }: Props) => {
-
-  const [isChecking, setIsChecking] = React.useState(false);
-  const [questionIndex, setQuestionIndex] = React.useState(0);
-  const [selectedChoice, setSelectedChoice] = React.useState<number>(0);
- 
-  const [correctAnswers, setCorrectAnswers] = React.useState<number>(0);
-  const [wrongAnswers, setWrongAnswers] = React.useState<number>(0);
-  
-  const [hasEnded, setHasEnded] = React.useState<boolean>(false);
-  const [now, setNow] = React.useState<Date>(new Date());
+export default function MCQ({ game }: MCQProps) {
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      if (!hasEnded) {
-        setNow(new Date());
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [hasEnded]);
-
-  const [stats, setStats] = React.useState({
-    correctAnswers: 0,
-    wrongAnswers: 0,
-  });
-  
+  const [questionIndex, setQuestionIndex] = React.useState(0);
+  const [selectedChoice, setSelectedChoice] = React.useState<number | null>(null);
+  const [correctAnswers, setCorrectAnswers] = React.useState(0);
+  const [wrongAnswers, setWrongAnswers] = React.useState(0);
+  const [hasEnded, setHasEnded] = React.useState(false);
+  const [now, setNow] = React.useState(new Date());
 
   const currentQuestion = React.useMemo(() => {
     return game.questions[questionIndex];
-  }, [ questionIndex, game.questions]);
-  
-  const { mutate: checkAnswer } = useMutation({
+  }, [game.questions, questionIndex]);
+
+  const options = React.useMemo(() => {
+    if (!currentQuestion?.options) return [];
+    return JSON.parse(currentQuestion.options as string) as string[];
+  }, [currentQuestion]);
+
+  React.useEffect(() => {
+    if (hasEnded) return;
+
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [hasEnded]);
+
+  const { mutate: checkAnswer, isPending: isChecking } = useMutation({
     mutationFn: async () => {
-      setIsChecking(true);
-      try {
-        const payload: z.infer<typeof checkAnswerSchema> = {
-          questionId: currentQuestion.id,
-          userAnswer: options[selectedChoice],
-        };
-        const response = await axios.post("/api/checkAnswer", payload);
-        return response.data;
-      } finally {
-        setIsChecking(false);
-      }
+      const payload: z.infer<typeof checkAnswerSchema> = {
+        questionId: currentQuestion.id,
+        userAnswer: selectedChoice !== null ? options[selectedChoice] : "",
+      };
+
+      const response = await axios.post("/api/checkAnswer", payload);
+      return response.data;
     },
   });
 
   const handleNext = React.useCallback(() => {
     if (isChecking) return;
+
+    if (selectedChoice === null) {
+      toast({
+        title: "Select an answer",
+        description: "Please choose an option before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     checkAnswer(undefined, {
       onSuccess: ({ isCorrect }) => {
         if (isCorrect) {
           toast({
             title: "Correct!",
-            description: "Correct Answer",
+            description: "Nice job.",
             variant: "success",
           });
           setCorrectAnswers((prev) => prev + 1);
-      } else {
+        } else {
+          toast({
+            title: "Incorrect",
+            description: "Try the next one.",
+            variant: "destructive",
+          });
+          setWrongAnswers((prev) => prev + 1);
+        }
+
+        const isLastQuestion = questionIndex === game.questions.length - 1;
+
+        if (isLastQuestion) {
+          setHasEnded(true);
+          return;
+        }
+
+        setQuestionIndex((prev) => prev + 1);
+        setSelectedChoice(null);
+      },
+      onError: (error) => {
+        console.error(error);
         toast({
-          title: "Incorrect!",
-          description: "Incorrect Answer",
+          title: "Something went wrong",
+          description: "We could not check your answer.",
           variant: "destructive",
         });
-        setWrongAnswers((prev) => prev + 1);
-      }
-      if (questionIndex === game.questions.length - 1) {
-        setHasEnded(true);
-        return;
-      }
-        setQuestionIndex((prev) => prev + 1);
-      }
+      },
     });
-  }, [checkAnswer, toast, isChecking, questionIndex, game.questions.length]);
+  }, [checkAnswer, game.questions.length, isChecking, questionIndex, selectedChoice, toast]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-  if (event.key == "1") {
-    setSelectedChoice(0);
-  } else if (event.key == "2") {
-    setSelectedChoice(1);
-  } else if (event.key == "3") {
-    setSelectedChoice(2);
-  } else if (event.key == "4") {
-    setSelectedChoice(3);
-  } else if (event.key == "Enter") {
-    handleNext();
-    }
-  };
-  document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      if (event.key === "1") {
+        setSelectedChoice(0);
+      } else if (event.key === "2") {
+        setSelectedChoice(1);
+      } else if (event.key === "3") {
+        setSelectedChoice(2);
+      } else if (event.key === "4") {
+        setSelectedChoice(3);
+      } else if (event.key === "Enter") {
+        handleNext();
+      }
     };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleNext]);
 
-  const options = React.useMemo(() => {
-    if (!currentQuestion) return []
-    if (!currentQuestion.options) return []
-    return JSON.parse(currentQuestion.options as string) as string[];
-  }, [currentQuestion]);
-
-  
   if (hasEnded) {
     return (
-      <div className="absolute flex flex-col justify-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-        <div className="px-4 py-2 mt-2 font-semibold text-white bg-green-500 rounded-md whitespace-nowrap">
-          You Completed in{" "}
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col items-center justify-center px-4 py-10">
+        <div className="rounded-md bg-green-500 px-4 py-2 font-semibold text-white">
+          You completed the quiz in{" "}
           {formatTimeDelta(differenceInSeconds(now, game.timeStarted))}
         </div>
+
         <Link
           href={`/statistics/${game.id}`}
-          className={cn(buttonVariants(), "mt-2")}
+          className={cn(buttonVariants(), "mt-4")}
         >
           View Statistics
-          <BarChart className="w-4 h-4 ml-2" />
+          <BarChart className="ml-2 h-4 w-4" />
         </Link>
-      </div>
+      </main>
     );
   }
 
-  // const { mutate: endGame } = React.useMutation({
-  //   mutationFn: async () => {
-  //     const payload: z.infer<typeof endGameSchema> = {
-  //       gameId: game.id,
-  //     };
-  //     const response = await axios.post(`/api/endGame`, payload);
-  //     return response.data;
-  //   },
-  // });
-
-
   return (
-    <div className="absolute -translate-x-1/2 -translate-y-1/2 md:w-[80vw] max-w-4xl w-[90vw] top-1/2 left-1/2">
-      <div className="flex flex-row justify-between">
+    <main className="mx-auto w-[90vw] max-w-4xl px-4 py-8 md:w-[80vw]">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div className="flex flex-col">
-          {/* topic */}
           <p>
-            <span className="text-slate-400">Topic</span> &nbsp;
-            <span className="px-2 py-1 text-white rounded-lg bg-slate-800">
+            <span className="text-slate-400">Topic</span>{" "}
+            <span className="rounded-lg bg-slate-800 px-2 py-1 text-white">
               {game.topic}
             </span>
           </p>
-          <div className="flex self-start mt-3 text-slate-400">
+
+          <div className="mt-3 flex self-start text-slate-400">
             <Timer className="mr-2" />
             {formatTimeDelta(differenceInSeconds(now, game.timeStarted))}
           </div>
         </div>
+
         <MCQCounter
           correctAnswers={correctAnswers}
           wrongAnswers={wrongAnswers}
         />
       </div>
-      <Card className="w-full mt-4">
+
+      <Card className="mt-4 w-full">
         <CardHeader className="flex flex-row items-center">
           <CardTitle className="mr-5 text-center divide-y divide-zinc-600/50">
             <div>{questionIndex + 1}</div>
-            <div className="text-base text-slate-400">
-              {game.questions.length}
-            </div>
+            <div className="text-base text-slate-400">{game.questions.length}</div>
           </CardTitle>
+
           <CardDescription className="flex-grow text-lg">
             {currentQuestion?.question}
           </CardDescription>
         </CardHeader>
       </Card>
-      <div className="flex flex-col items-center justify-center w-full mt-4">
-        {options.map((option, index) => {
-          return ( 
-            <Button
-              key={index}
-              className="justify-start w-full py-8 mb-4"
-              variant={selectedChoice === index ? "default" : "secondary"}
-              onClick={() => {
-                setSelectedChoice(index);
-              }}
-            >
-              <div className="flex items-center justify-start">
-                <div className="p-2 px-3 mr-5 border rounded-md">
-                  {index + 1}
-                </div>
-                <div className="text-start">{option}</div>
-              </div>
-            </Button>
-          )
-        })}
+
+      <div className="mt-4 flex w-full flex-col items-center justify-center">
+        {options.map((option, index) => (
+          <Button
+            key={`${option}-${index}`}
+            className="mb-4 w-full justify-start py-8"
+            variant={selectedChoice === index ? "default" : "secondary"}
+            onClick={() => setSelectedChoice(index)}
+          >
+            <div className="flex items-center justify-start">
+              <div className="mr-5 rounded-md border px-3 py-2">{index + 1}</div>
+              <div className="text-start">{option}</div>
+            </div>
+          </Button>
+        ))}
+
         <Button
           className="mt-2"
           variant="default"
@@ -216,12 +210,10 @@ const MCQ = ({ game }: Props) => {
           disabled={isChecking}
           onClick={handleNext}
         >
-          {isChecking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Next <ChevronRight className="w-4 h-4 ml-2" />
+          {isChecking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Next <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </main>
   );
-};
-
-export default MCQ;
+}

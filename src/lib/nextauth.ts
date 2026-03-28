@@ -1,10 +1,5 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { type GetServerSidePropsContext } from "next";
-import {
-  getServerSession,
-  type NextAuthOptions,
-  type DefaultSession,
-} from "next-auth";
+import { getServerSession, type DefaultSession, type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/db";
 
@@ -12,58 +7,65 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
-      // ...other properties
-      // role: UserRole;
     } & DefaultSession["user"];
   }
+
   interface User {
     id: string;
   }
 }
 
-
 declare module "next-auth/jwt" {
   interface JWT {
-    id: string;
+    id?: string;
   }
 }
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+  ],
   callbacks: {
-    jwt: async ({ token }) => {
-      const db_user = await prisma.user.findFirst({
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+        return token;
+      }
+
+      if (!token.email) {
+        return token;
+      }
+
+      const dbUser = await prisma.user.findUnique({
         where: {
-          email: token?.email,
+          email: token.email,
         },
       });
-      if (db_user) {
-        token.id = db_user.id;
+
+      if (dbUser) {
+        token.id = dbUser.id;
       }
+
       return token;
     },
-    session: ({ session, token }) => {
-      if (token) {
+    session({ session, token }) {
+      if (session.user && token.id) {
         session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.image = token.picture;
       }
+
       return session;
     },
   },
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
-  ],
 };
 
-export const getAuthSession = () => {
+export function getAuthSession() {
   return getServerSession(authOptions);
-};
+}
