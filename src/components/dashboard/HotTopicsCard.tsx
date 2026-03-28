@@ -1,4 +1,4 @@
-import React from "react";
+import dynamic from "next/dynamic";
 import {
   Card,
   CardContent,
@@ -6,19 +6,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import CustomWordCloud from "../CustomWordCloud";
 import { prisma } from "@/lib/db";
 
-type Props = {};
+const CustomWordCloud = dynamic(() => import("../CustomWordCloud"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[550px] items-center justify-center text-sm text-muted-foreground">
+      Loading topics...
+    </div>
+  ),
+});
 
-const HotTopicsCard = async (props: Props) => {
-  const topics = await prisma.topicCount.findMany({});
-  const formattedTopics = topics.map((topic) => {
-    return {
-      text: topic.topic,
-      value: topic.count,
-    };
-  });
+export default async function HotTopicsCard() {
+  const topics = await prisma.topicCount.findMany();
+
+  const formattedTopics = topics.map((topic) => ({
+    text: topic.topic,
+    value: topic.count,
+  }));
+
   return (
     <Card className="col-span-4">
       <CardHeader>
@@ -27,11 +33,16 @@ const HotTopicsCard = async (props: Props) => {
           Click on a topic to start a quiz on it.
         </CardDescription>
       </CardHeader>
+
       <CardContent className="pl-2">
-        <CustomWordCloud formattedTopics={formattedTopics} />
+        {formattedTopics.length > 0 ? (
+          <CustomWordCloud formattedTopics={formattedTopics} />
+        ) : (
+          <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+            No topics yet. Complete a few quizzes to see trends here.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
-};
-
-export default HotTopicsCard;
+}
