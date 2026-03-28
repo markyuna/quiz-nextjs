@@ -1,9 +1,6 @@
-import React from "react";
-
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -16,66 +13,59 @@ type Props = {
   questions: Question[];
 };
 
-const QuestionsList = ({ questions }: Props) => {
-  if (!questions || questions.length === 0) {
-    return <p>Aucune question disponible.</p>;
+export default function QuestionsList({ questions }: Props) {
+  if (!questions?.length) {
+    return <p className="mt-4 text-center">No questions available.</p>;
   }
 
-  let gameType = questions[0]?.questionType;
+  const gameType = questions[0]?.questionType;
 
   return (
-    <Table className="mt-4">
-      <TableCaption>End of list.</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[10px]">No.</TableHead>
-          <TableHead>Question & Correct Answer</TableHead>
-          <TableHead>Your Answer</TableHead>
-
-          {gameType === "open_ended" && (
-            <TableHead className="w-[10px] text-right">Accuracy</TableHead>
-          )}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <>
-        {questions.map((question, index) => {
-          return (
-          <TableRow key={question.id}>
-            <TableCell className="font-medium">{index + 1}</TableCell>
-            <TableCell>
-              {question.question} 
-              <br />
-              <br />
-              <span className="font-semibold text-green-600">{question.answer}</span>
-            </TableCell>
-            {gameType === "mcq" && (
-            
-              <TableCell 
-                className={cn({
-                  "font-semibold text-green-600" : question.isCorrect,
-                  "font-semibold text-red-600" : !question.isCorrect,
-                })}
-              >
-                {question.userAnswer}
-              </TableCell>
-            )}
-
+    <div className="mt-6 overflow-hidden rounded-xl border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>#</TableHead>
+            <TableHead>Question</TableHead>
+            <TableHead>Your Answer</TableHead>
             {gameType === "open_ended" && (
-              <TableCell>{question.userAnswer}</TableCell>
-            )}
-            {gameType === "open_ended" && (
-              <TableCell className="text-right">
-                {question.percentageCorrect}
-              </TableCell>
+              <TableHead className="text-right">Score</TableHead>
             )}
           </TableRow>
-          );
-        })}
-        </>
-      </TableBody>
-    </Table>
-  );
-};
+        </TableHeader>
 
-export default QuestionsList;
+        <TableBody>
+          {questions.map((q, i) => (
+            <TableRow key={q.id}>
+              <TableCell>{i + 1}</TableCell>
+
+              <TableCell>
+                <div className="space-y-1">
+                  <p>{q.question}</p>
+                  <p className="text-sm font-semibold text-green-600">
+                    ✔ {q.answer}
+                  </p>
+                </div>
+              </TableCell>
+
+              <TableCell
+                className={cn({
+                  "text-green-600 font-semibold": q.isCorrect,
+                  "text-red-600 font-semibold": q.isCorrect === false,
+                })}
+              >
+                {q.userAnswer ?? "-"}
+              </TableCell>
+
+              {gameType === "open_ended" && (
+                <TableCell className="text-right">
+                  {q.percentageCorrect ?? 0}%
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
