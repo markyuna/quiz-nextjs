@@ -3,14 +3,17 @@ import { z } from "zod";
 
 import { getAuthSession } from "@/lib/nextauth";
 import { prisma } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { quizCreationSchema } from "@/schemas/form/quiz";
 
-type MCQQuestion = {
+type SupabaseMCQQuestion = {
+  id: string;
+  topic: string;
+  difficulty: "easy" | "medium" | "hard";
   question: string;
-  answer: string;
-  option1: string;
-  option2: string;
-  option3: string;
+  options: string[];
+  correct_answer: string;
+  explanation: string | null;
 };
 
 type OpenEndedQuestion = {
@@ -58,33 +61,39 @@ export async function POST(req: Request) {
       },
     });
 
-    const questionsResponse = await fetch(`${process.env.API_URL}/api/questions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ amount, topic, type }),
-      cache: "no-store",
-    });
-
-    if (!questionsResponse.ok) {
-      throw new Error("Failed to generate questions");
-    }
-
-    const data = await questionsResponse.json();
-
     if (type === "mcq") {
-      const manyData = (data.questions as MCQQuestion[]).map((question) => {
-        const options = shuffleArray([
-          question.answer,
-          question.option1,
-          question.option2,
-          question.option3,
-        ]);
+      const { data: supabaseQuestions, error } = await supabaseAdmin
+        .from("quiz_questions")
+        .select("*")
+        .eq("is_active", true)
+        .eq("topic", topic)
+        .limit(amount);
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      if (!supabaseQuestions || supabaseQuestions.length === 0) {
+        return NextResponse.json(
+          { error: `No saved questions found for topic "${topic}".` },
+          { status: 404 }
+        );
+      }
+
+      const shuffledQuestions = shuffleArray(
+        supabaseQuestions as SupabaseMCQQuestion[]
+      ).slice(0, amount);
+
+      const manyData = shuffledQuestions.map((question) => {
+        const normalizedOptions = Array.isArray(question.options)
+          ? question.options
+          : [];
+
+        const options = shuffleArray(normalizedOptions);
 
         return {
           question: question.question,
-          answer: question.answer,
+          answer: question.correct_answer,
           options: JSON.stringify(options),
           gameId: game.id,
           questionType: "mcq" as const,
@@ -94,10 +103,26 @@ export async function POST(req: Request) {
       await prisma.question.createMany({
         data: manyData,
       });
+
+      for (const question of shuffledQuestions) {
+        await supabaseAdmin
+          .from("quiz_questions")
+          .update({
+            usage_count: 1 + 0,
+          })
+          .eq("id", question.id);
+      }
     }
 
     if (type === "open_ended") {
-      const manyData = (data.questions as OpenEndedQuestion[]).map((question) => ({
+      const fallbackQuestions: OpenEndedQuestion[] = [
+        {
+          question: `Explain in your own words: ${topic}`,
+          answer: topic,
+        },
+      ];
+
+      const manyData = fallbackQuestions.map((question) => ({
         question: question.question,
         answer: question.answer,
         gameId: game.id,
@@ -112,10 +137,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ gameId: game.id }, { status: 200 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
 
     console.error("game POST error:", error);
@@ -154,10 +176,7 @@ export async function GET(req: Request) {
     });
 
     if (!game) {
-      return NextResponse.json(
-        { error: "Game not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Game not found." }, { status: 404 });
     }
 
     return NextResponse.json({ game }, { status: 200 });
