@@ -31,6 +31,7 @@
     "date-fns": "^3.3.0",
     "debug": "^4.3.1",
     "dotenv": "^16.3.1",
+    "framer-motion": "^12.38.0",
     "keyword-extractor": "^0.0.28",
     "lucide-react": "^0.312.0",
     "next": "14.0.4",

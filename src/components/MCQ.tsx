@@ -6,12 +6,20 @@ import axios from "axios";
 import { z } from "zod";
 import { differenceInSeconds } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
-import { BarChart, ChevronRight, Loader2, Timer } from "lucide-react";
+import {
+  BarChart,
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+  Timer,
+} from "lucide-react";
 import { Game, Question } from "@prisma/client";
+import { AnimatePresence, motion } from "framer-motion";
 
 import MCQCounter from "./MCQCounter";
+import QuizProgress from "./QuizProgress";
 import { Button, buttonVariants } from "./ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useToast } from "./ui/use-toast";
 import { checkAnswerSchema } from "@/schemas/form/quiz";
 import { cn, formatTimeDelta } from "@/lib/utils";
@@ -31,6 +39,13 @@ export default function MCQ({ game }: MCQProps) {
   const [wrongAnswers, setWrongAnswers] = React.useState(0);
   const [hasEnded, setHasEnded] = React.useState(false);
   const [now, setNow] = React.useState(new Date());
+  const [feedback, setFeedback] = React.useState<{
+    type: "success" | "error" | null;
+    message: string;
+  }>({
+    type: null,
+    message: "",
+  });
 
   const currentQuestion = React.useMemo(() => {
     return game.questions[questionIndex];
@@ -76,24 +91,24 @@ export default function MCQ({ game }: MCQProps) {
     }
 
     checkAnswer(undefined, {
-      onSuccess: ({ isCorrect }) => {
+      onSuccess: async ({ isCorrect }) => {
         if (isCorrect) {
-          toast({
-            title: "Correct!",
-            description: "Nice job.",
-            variant: "success",
+          setFeedback({
+            type: "success",
+            message: "Correct answer. Nice job.",
           });
           setCorrectAnswers((prev) => prev + 1);
         } else {
-          toast({
-            title: "Incorrect",
-            description: "Try the next one.",
-            variant: "destructive",
+          setFeedback({
+            type: "error",
+            message: "Incorrect answer. Try the next one.",
           });
           setWrongAnswers((prev) => prev + 1);
         }
 
         const isLastQuestion = questionIndex === game.questions.length - 1;
+
+        await new Promise((resolve) => setTimeout(resolve, 700));
 
         if (isLastQuestion) {
           setHasEnded(true);
@@ -102,6 +117,7 @@ export default function MCQ({ game }: MCQProps) {
 
         setQuestionIndex((prev) => prev + 1);
         setSelectedChoice(null);
+        setFeedback({ type: null, message: "" });
       },
       onError: (error) => {
         console.error(error);
@@ -112,7 +128,7 @@ export default function MCQ({ game }: MCQProps) {
         });
       },
     });
-  }, [checkAnswer, game.questions.length, isChecking, questionIndex, selectedChoice, toast]);
+  }, [checkAnswer, game.questions.length, isChecking, questionIndex, selectedChoice, toast, currentQuestion, options]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -135,84 +151,190 @@ export default function MCQ({ game }: MCQProps) {
 
   if (hasEnded) {
     return (
-      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col items-center justify-center px-4 py-10">
-        <div className="rounded-md bg-green-500 px-4 py-2 font-semibold text-white">
-          You completed the quiz in{" "}
-          {formatTimeDelta(differenceInSeconds(now, game.timeStarted))}
-        </div>
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col items-center justify-center px-4 py-10">
+        <Card className="glass-card w-full rounded-3xl border-white/10 text-center shadow-2xl">
+          <CardHeader className="space-y-4">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            </div>
+            <CardTitle className="text-3xl">Quiz completed</CardTitle>
+          </CardHeader>
 
-        <Link
-          href={`/statistics/${game.id}`}
-          className={cn(buttonVariants(), "mt-4")}
-        >
-          View Statistics
-          <BarChart className="ml-2 h-4 w-4" />
-        </Link>
+          <CardContent className="space-y-6">
+            <p className="text-muted-foreground">
+              You completed this quiz in{" "}
+              <span className="font-semibold text-foreground">
+                {formatTimeDelta(differenceInSeconds(now, game.timeStarted))}
+              </span>
+            </p>
+
+            <div className="flex justify-center">
+              <MCQCounter
+                correctAnswers={correctAnswers}
+                wrongAnswers={wrongAnswers}
+              />
+            </div>
+
+            <Link
+              href={`/statistics/${game.id}`}
+              className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
+            >
+              View Statistics
+              <BarChart className="ml-2 h-4 w-4" />
+            </Link>
+          </CardContent>
+        </Card>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-[90vw] max-w-4xl px-4 py-8 md:w-[80vw]">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div className="flex flex-col">
-          <p>
-            <span className="text-slate-400">Topic</span>{" "}
-            <span className="rounded-lg bg-slate-800 px-2 py-1 text-white">
-              {game.topic}
-            </span>
-          </p>
+    <main className="mx-auto w-full max-w-5xl px-4 py-8">
+      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+        <section className="space-y-6">
+          <Card className="glass-card border-white/10 shadow-2xl">
+            <CardContent className="space-y-5 p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-2">
+                  <div className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-sm font-medium text-white dark:bg-slate-100 dark:text-slate-900">
+                    {game.topic}
+                  </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Timer className="mr-2 h-4 w-4" />
+                    {formatTimeDelta(differenceInSeconds(now, game.timeStarted))}
+                  </div>
+                </div>
 
-          <div className="mt-3 flex self-start text-slate-400">
-            <Timer className="mr-2" />
-            {formatTimeDelta(differenceInSeconds(now, game.timeStarted))}
+                <div className="sm:min-w-[220px]">
+                  <QuizProgress
+                    current={questionIndex + 1}
+                    total={game.questions.length}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/70 p-6 shadow-lg backdrop-blur-xl dark:bg-white/5">
+                <div className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                  Multiple choice question
+                </div>
+
+                <AnimatePresence mode="wait">
+                  <motion.h2
+                    key={currentQuestion?.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-2xl font-semibold leading-snug"
+                  >
+                    {currentQuestion?.question}
+                  </motion.h2>
+                </AnimatePresence>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-4">
+            {options.map((option, index) => {
+              const isSelected = selectedChoice === index;
+
+              return (
+                <motion.button
+                  key={`${option}-${index}`}
+                  type="button"
+                  onClick={() => setSelectedChoice(index)}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={cn(
+                    "w-full rounded-2xl border bg-card p-5 text-left shadow-sm transition-all duration-200",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/40",
+                    isSelected
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border"
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-muted-foreground/20 bg-muted"
+                      )}
+                    >
+                      {index + 1}
+                    </div>
+
+                    <div className="flex-1 pt-1 text-base leading-relaxed">
+                      {option}
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
-        </div>
 
-        <MCQCounter
-          correctAnswers={correctAnswers}
-          wrongAnswers={wrongAnswers}
-        />
-      </div>
+          <AnimatePresence>
+            {feedback.type && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className={cn(
+                  "rounded-xl border px-4 py-3 text-sm font-medium",
+                  feedback.type === "success"
+                    ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300"
+                    : "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+                )}
+              >
+                {feedback.message}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      <Card className="mt-4 w-full">
-        <CardHeader className="flex flex-row items-center">
-          <CardTitle className="mr-5 text-center divide-y divide-zinc-600/50">
-            <div>{questionIndex + 1}</div>
-            <div className="text-base text-slate-400">{game.questions.length}</div>
-          </CardTitle>
+          <div className="flex justify-end">
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button
+                className="min-w-[180px] rounded-xl"
+                size="lg"
+                disabled={isChecking}
+                onClick={handleNext}
+              >
+                {isChecking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Continue
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </motion.div>
+          </div>
+        </section>
 
-          <CardDescription className="flex-grow text-lg">
-            {currentQuestion?.question}
-          </CardDescription>
-        </CardHeader>
-      </Card>
+        <aside className="space-y-4">
+          <Card className="glass-card shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-lg">Score</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MCQCounter
+                correctAnswers={correctAnswers}
+                wrongAnswers={wrongAnswers}
+              />
+            </CardContent>
+          </Card>
 
-      <div className="mt-4 flex w-full flex-col items-center justify-center">
-        {options.map((option, index) => (
-          <Button
-            key={`${option}-${index}`}
-            className="mb-4 w-full justify-start py-8"
-            variant={selectedChoice === index ? "default" : "secondary"}
-            onClick={() => setSelectedChoice(index)}
-          >
-            <div className="flex items-center justify-start">
-              <div className="mr-5 rounded-md border px-3 py-2">{index + 1}</div>
-              <div className="text-start">{option}</div>
-            </div>
-          </Button>
-        ))}
-
-        <Button
-          className="mt-2"
-          variant="default"
-          size="lg"
-          disabled={isChecking}
-          onClick={handleNext}
-        >
-          {isChecking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Next <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Shortcuts</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <p>Press 1–4 to select an answer</p>
+              <p>Press Enter to continue</p>
+            </CardContent>
+          </Card>
+        </aside>
       </div>
     </main>
   );
