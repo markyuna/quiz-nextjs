@@ -32,6 +32,7 @@ export default async function MCQPage({ params: { gameId } }: MCQPageProps) {
         select: {
           id: true,
           question: true,
+          answer: true,
           options: true,
         },
       },

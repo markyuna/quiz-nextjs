@@ -7,13 +7,12 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpen, CopyCheck } from "lucide-react";
+import { CopyCheck } from "lucide-react";
 
 import { quizCreationSchema } from "@/schemas/form/quiz";
 import { useToast } from "./ui/use-toast";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Separator } from "./ui/separator";
 import LoadingQuestions from "./LoadingQuestions";
 import {
   Card,
@@ -48,36 +47,43 @@ export default function QuizCreation({ topicParam }: QuizCreationProps) {
   const form = useForm<QuizCreationInput>({
     resolver: zodResolver(quizCreationSchema),
     defaultValues: {
+      topic: topicParam ?? "",
       amount: 3,
-      topic: topicParam,
-      type: "open_ended",
+      difficulty: "easy",
+      type: "mcq",
     },
   });
 
   const { mutate: createGame, isPending } = useMutation({
-    mutationFn: async ({ amount, topic, type }: QuizCreationInput) => {
-      const response = await axios.post("/api/game", { amount, topic, type });
+    mutationFn: async (values: QuizCreationInput) => {
+      const response = await axios.post("/api/game", values);
       return response.data;
     },
-    onSuccess: ({ gameId }) => {
+    onSuccess: (data) => {
+      if (!data?.gameId) {
+        setShowLoader(false);
+        toast({
+          title: "Error",
+          description: "The server did not return a game ID.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setFinished(true);
 
       setTimeout(() => {
-        const gameType = form.getValues("type");
-        router.push(
-          gameType === "open_ended"
-            ? `/play/open-ended/${gameId}`
-            : `/play/mcq/${gameId}`
-        );
-      }, 1000);
+        router.push(`/play/mcq/${data.gameId}`);
+      }, 800);
     },
     onError: (error) => {
       setShowLoader(false);
 
-      if (error instanceof AxiosError && error.response?.status === 500) {
+      if (error instanceof AxiosError) {
         toast({
           title: "Error",
-          description: "Something went wrong. Please try again later.",
+          description:
+            error.response?.data?.error ?? "Unable to create the quiz.",
           variant: "destructive",
         });
         return;
@@ -85,34 +91,34 @@ export default function QuizCreation({ topicParam }: QuizCreationProps) {
 
       toast({
         title: "Error",
-        description: "Unable to create the quiz.",
+        description: "Something went wrong.",
         variant: "destructive",
       });
     },
   });
 
-  function onSubmit(values: QuizCreationInput) {
+  const onSubmit = (values: QuizCreationInput) => {
     setShowLoader(true);
     createGame(values);
-  }
+  };
 
   if (showLoader) {
     return <LoadingQuestions finished={finished} />;
   }
 
-  const selectedType = form.watch("type");
-
   return (
     <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl items-center justify-center px-4 py-10">
-      <Card className="w-full">
+      <Card className="w-full border-white/10 bg-slate-950/70 text-white backdrop-blur">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Create a Quiz</CardTitle>
-          <CardDescription>Choose a topic and quiz format.</CardDescription>
+          <CardTitle className="text-3xl font-bold">Create a Quiz</CardTitle>
+          <CardDescription className="text-slate-300">
+            Choose a topic, difficulty, and number of questions.
+          </CardDescription>
         </CardHeader>
 
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="topic"
@@ -120,42 +126,87 @@ export default function QuizCreation({ topicParam }: QuizCreationProps) {
                   <FormItem>
                     <FormLabel>Topic</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter a topic..." {...field} />
+                      <Input
+                        placeholder="Enter a topic..."
+                        {...field}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
+                      />
                     </FormControl>
-                    <FormDescription>
-                      Choose any topic you want to practice.
+                    <FormDescription className="text-slate-400">
+                      Example: JavaScript, History, Biology...
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="flex justify-between overflow-hidden rounded-lg border">
+              <FormField
+                control={form.control}
+                name="difficulty"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Difficulty</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      >
+                        <option value="easy" className="text-black">
+                          Easy
+                        </option>
+                        <option value="medium" className="text-black">
+                          Medium
+                        </option>
+                        <option value="hard" className="text-black">
+                          Hard
+                        </option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Number of Questions</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={20}
+                        {...field}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-slate-400">
+                      Choose between 1 and 20 questions.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="overflow-hidden rounded-xl border border-white/10">
                 <Button
                   type="button"
-                  className="w-1/2 rounded-none"
-                  variant={selectedType === "mcq" ? "default" : "secondary"}
+                  className="h-12 w-full rounded-none bg-gradient-to-r from-violet-600 to-cyan-500 text-base font-semibold text-white hover:opacity-90"
                   onClick={() => form.setValue("type", "mcq")}
                 >
                   <CopyCheck className="mr-2 h-4 w-4" />
                   Multiple Choice
                 </Button>
-
-                <Separator orientation="vertical" />
-
-                <Button
-                  type="button"
-                  className="w-1/2 rounded-none"
-                  variant={selectedType === "open_ended" ? "default" : "secondary"}
-                  onClick={() => form.setValue("type", "open_ended")}
-                >
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Open Ended
-                </Button>
               </div>
 
-              <Button disabled={isPending} type="submit">
-                Create Quiz
+              <Button
+                disabled={isPending}
+                type="submit"
+                className="bg-gradient-to-r from-violet-600 to-cyan-500 text-white hover:opacity-90"
+              >
+                {isPending ? "Creating Quiz..." : "Create Quiz"}
               </Button>
             </form>
           </Form>

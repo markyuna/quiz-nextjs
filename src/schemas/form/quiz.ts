@@ -1,23 +1,22 @@
 import { z } from "zod";
 
 export const quizCreationSchema = z.object({
-  topic: z
-    .string()
-    .min(4, { message: "Topic must be at least 4 characters long" })
-    .max(50, { message: "Topic must be at most 50 characters long" }),
-  type: z.enum(["mcq", "open_ended"]),
-  amount: z.number().int().min(1).max(10),
+  topic: z.string().min(1, "Topic is required"),
+  amount: z.coerce.number().min(1, "Minimum is 1").max(20, "Maximum is 20"),
+  difficulty: z.enum(["easy", "medium", "hard"]),
+  type: z.literal("mcq"),
 });
 
 export const getQuestionsSchema = z.object({
   topic: z.string(),
+  difficulty: z.enum(["easy", "medium", "hard"]),
   amount: z.number().int().positive().min(1).max(10),
   type: z.enum(["mcq", "open_ended"]),
 });
 
 export const checkAnswerSchema = z.object({
-  questionId: z.string(),
-  userAnswer: z.string(),
+  questionId: z.string().min(1, "Question ID is required"),
+  userAnswer: z.string().min(1, "Answer is required"),
 });
 
 export const endGameSchema = z.object({

@@ -1,76 +1,66 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
-import { stringSimilarity } from "string-similarity-js";
+import { z } from "zod";
 
 import { prisma } from "@/lib/db";
+import { getAuthSession } from "@/lib/nextauth";
 import { checkAnswerSchema } from "@/schemas/form/quiz";
 
 export async function POST(req: Request) {
   try {
+    const session = await getAuthSession();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
     const body = await req.json();
-    const { questionId, userAnswer } = checkAnswerSchema.parse(body);
+
+    const parsedBody = checkAnswerSchema.parse({
+      questionId: body.questionId,
+      userAnswer: body.userAnswer ?? body.answer,
+    });
 
     const question = await prisma.question.findUnique({
-      where: { id: questionId },
+      where: {
+        id: parsedBody.questionId,
+      },
+      select: {
+        id: true,
+        answer: true,
+      },
     });
 
     if (!question) {
       return NextResponse.json(
-        { message: "Question not found" },
+        { error: "Pregunta no encontrada" },
         { status: 404 }
       );
     }
 
-    await prisma.question.update({
-      where: { id: questionId },
-      data: { userAnswer },
-    });
+    const normalizedCorrectAnswer = question.answer.trim().toLowerCase();
+    const normalizedUserAnswer = parsedBody.userAnswer.trim().toLowerCase();
 
-    if (question.questionType === "mcq") {
-      const isCorrect =
-        question.answer.trim().toLowerCase() ===
-        userAnswer.trim().toLowerCase();
-
-      await prisma.question.update({
-        where: { id: questionId },
-        data: { isCorrect },
-      });
-
-      return NextResponse.json({ isCorrect }, { status: 200 });
-    }
-
-    if (question.questionType === "open_ended") {
-      const percentageSimilar = Math.round(
-        stringSimilarity(
-          userAnswer.trim().toLowerCase(),
-          question.answer.trim().toLowerCase()
-        ) * 100
-      );
-
-      await prisma.question.update({
-        where: { id: questionId },
-        data: { percentageCorrect: percentageSimilar },
-      });
-
-      return NextResponse.json({ percentageSimilar }, { status: 200 });
-    }
+    const correct = normalizedCorrectAnswer === normalizedUserAnswer;
 
     return NextResponse.json(
-      { message: "Unsupported question type" },
-      { status: 400 }
+      {
+        correct,
+        correctAnswer: question.answer,
+      },
+      { status: 200 }
     );
   } catch (error) {
-    if (error instanceof ZodError) {
+    console.error("POST /api/check-answer error:", error);
+
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: error.issues },
+        { error: "Datos inválidos", details: error.flatten() },
         { status: 400 }
       );
     }
 
-    console.error("checkAnswer error:", error);
-
     return NextResponse.json(
-      { message: "An unexpected error occurred." },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
