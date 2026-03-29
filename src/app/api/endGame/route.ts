@@ -1,43 +1,38 @@
-import { prisma } from "@/lib/db";
-import { endGameSchema } from "@/schemas/questions";
 import { NextResponse } from "next/server";
 
-export async function POST(req: Request, res: Response) {
+import { prisma } from "@/lib/db";
+import { endGameSchema } from "@/schemas/form/quiz";
+
+export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { gameId } = endGameSchema.parse(body);
 
     const game = await prisma.game.findUnique({
-      where: {
-        id: gameId,
-      },
+      where: { id: gameId },
     });
+
     if (!game) {
       return NextResponse.json(
-        {
-          message: "Game not found",
-        },
-        {
-          status: 404,
-        }
+        { message: "Game not found" },
+        { status: 404 }
       );
     }
+
     await prisma.game.update({
-      where: {
-        id: gameId,
-      },
-      data: {
-        timeEnded: new Date(),
-      },
+      where: { id: gameId },
+      data: { timeEnded: new Date() },
     });
-    return NextResponse.json({
-      message: "Game ended",
-    });
-  } catch (error) {
+
     return NextResponse.json(
-      {
-        message: "Something went wrong",
-      },
+      { message: "Game ended" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("endGame error:", error);
+
+    return NextResponse.json(
+      { message: "Something went wrong" },
       { status: 500 }
     );
   }

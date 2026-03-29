@@ -1,55 +1,96 @@
-import { quizCreationSchema } from "@/schemas/form/quiz";
-import { ZodError } from "zod";
-import { strict_output } from "@/lib/gpt";
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+
+import { strict_output } from "@/lib/gpt";
+import { getQuestionsSchema } from "@/schemas/form/quiz";
 
 export const runtime = "nodejs";
 export const maxDuration = 10;
 
-export const POST = async (req: Request, res: Response) => {
+type OpenEndedQuestion = {
+  question: string;
+  answer: string;
+};
+
+type MCQQuestion = OpenEndedQuestion & {
+  option1: string;
+  option2: string;
+  option3: string;
+};
+
+export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { amount, topic, type } = quizCreationSchema.parse(body);
+    const { amount, topic, type } = getQuestionsSchema.parse(body);
 
-    let questions: any;
+    let questions: OpenEndedQuestion[] | MCQQuestion[] = [];
 
-    if (type === "open_ended" || type === "mcq") {
-      const questionPrompt =
-        type === "open_ended"
-          ? `You are to generate a random hard open-ended question about ${topic}`
-          : `You are to generate a random hard mcq question about ${topic}`;
+    const prompt =
+      type === "open_ended"
+        ? `Generate a hard open-ended question about ${topic}.`
+        : `Generate a hard multiple-choice question about ${topic}.`;
 
-      const options =
-        type === "mcq"
-          ? {
-              option1: "1st with max length of 15 words",
-              option2: "2nd with max length of 15 words",
-              option3: "3rd with max length of 15 words",
-            }
-          : undefined;
+    const outputFormat =
+      type === "mcq"
+        ? {
+            question: "question",
+            answer: "correct answer with max length of 15 words",
+            option1: "incorrect option with max length of 15 words",
+            option2: "incorrect option with max length of 15 words",
+            option3: "incorrect option with max length of 15 words",
+          }
+        : {
+            question: "question",
+            answer: "answer with max length of 15 words",
+          };
 
-      questions = await strict_output(
-        "You are a helpful AI that is able to generate a pair of questions and answers, the length of the answer should not exceed 15 words, store all the pairs of answers and questions in a JSON array",
-        new Array(amount).fill(questionPrompt),
-        {
-          question: "question",
-          answer: "answer with max length of 15 words",
-          ...options,
-        }
+    try {
+      console.log("OPENAI KEY loaded:", !!process.env.OPENAI_API_KEY);
+
+      const aiQuestions = await strict_output(
+        "You are a helpful AI that generates quiz questions and answers. Return valid JSON only.",
+        new Array(amount).fill(prompt),
+        outputFormat
       );
-    } 
+
+      if (!aiQuestions || !Array.isArray(aiQuestions) || aiQuestions.length === 0) {
+        throw new Error("OpenAI returned no valid questions.");
+      }
+
+      questions = aiQuestions;
+    } catch (error) {
+      console.error("⚠️ OpenAI failed, using fallback questions instead.", error);
+
+      if (type === "mcq") {
+        questions = Array.from({ length: amount }, (_, index) => ({
+          question: `Sample multiple-choice question ${index + 1} about ${topic}?`,
+          answer: "Correct answer",
+          option1: "Wrong answer 1",
+          option2: "Wrong answer 2",
+          option3: "Wrong answer 3",
+        }));
+      } else {
+        questions = Array.from({ length: amount }, (_, index) => ({
+          question: `Sample open-ended question ${index + 1} about ${topic}.`,
+          answer: "This is a sample correct answer.",
+        }));
+      }
+    }
 
     return NextResponse.json({ questions }, { status: 200 });
-
   } catch (error) {
     if (error instanceof ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 });
-    } else {
-      console.error("Error:", error);
       return NextResponse.json(
-        { error: "An unexpected error occurred." },
-        { status: 500 }
+        { error: error.issues },
+        { status: 400 }
       );
     }
+
+    console.error("questions route error:", error);
+
+    return NextResponse.json(
+      { error: "An unexpected error occurred." },
+      { status: 500 }
+    );
   }
-};
+}

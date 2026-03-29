@@ -1,40 +1,47 @@
+import { redirect } from "next/navigation";
+
 import MCQ from "@/components/MCQ";
 import { prisma } from "@/lib/db";
 import { getAuthSession } from "@/lib/nextauth";
-import { redirect } from "next/navigation";
-import React from "react";
 
-type Props = {
+type MCQPageProps = {
   params: {
     gameId: string;
   };
 };
 
-const MCQPage = async ({ params: { gameId } }: Props) => {
+export const metadata = {
+  title: "MCQ Game | Quizmify",
+};
+
+export default async function MCQPage({ params: { gameId } }: MCQPageProps) {
   const session = await getAuthSession();
+
   if (!session?.user) {
-    return redirect("/");
+    redirect("/");
   }
 
-  const game = await prisma.game.findUnique({
+  const game = await prisma.game.findFirst({
     where: {
       id: gameId,
+      userId: session.user.id,
+      gameType: "mcq",
     },
     include: {
       questions: {
         select: {
           id: true,
           question: true,
+          answer: true,
           options: true,
         },
       },
     },
   });
-  if (!game || game.gameType !== "mcq") {
-    return redirect("/quiz");
-  }
-  return <MCQ game={game} />;
-    
-};
 
-export default MCQPage;  
+  if (!game) {
+    redirect("/quiz");
+  }
+
+  return <MCQ game={game} />;
+}

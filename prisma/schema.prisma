@@ -1,13 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider     = "mysql"
+  provider     = "postgresql"
   url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
   relationMode = "prisma"
 }
 
@@ -27,7 +25,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@index([userId])
+  @@index([userId], map: "account_userId_idx")
 }
 
 model Session {
@@ -37,18 +35,25 @@ model Session {
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], name: "userId")
+  @@index([userId], map: "session_userId_idx")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  games         Game[]
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String?   @unique
+  emailVerified      DateTime?
+  image              String?
+  password           String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  subscriptionStatus String    @default("free")
+  stripeCustomerId   String?
+
+  accounts Account[]
+  sessions Session[]
+  games    Game[]
+  attempts Attempt[]
 }
 
 enum GameType {
@@ -58,15 +63,18 @@ enum GameType {
 
 model Game {
   id          String     @id @default(cuid())
-  userId      String
-  timeStarted DateTime
-  topic       String
-  timeEnded   DateTime?
   gameType    GameType
+  timeStarted DateTime   @default(now())
+  timeEnded   DateTime?
+  topic       String
+  difficulty  String?
+  userId      String
+  score       Int        @default(0)
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   questions   Question[]
+  attempts    Attempt[]
 
-  @@index([userId], name: "userId")
+  @@index([userId])
 }
 
 model TopicCount {
@@ -74,18 +82,66 @@ model TopicCount {
   topic String @unique
   count Int
 }
+
+model McqQuestion {
+  id             String   @id @default(cuid())
+  topic          String
+  difficulty     String
+  question       String
+  options        String[]
+  correct_answer String
+  explanation    String?
+  is_active      Boolean  @default(true)
+  usage_count    Int      @default(0)
+  created_at     DateTime @default(now())
+
+  @@map("mcq_questions")
+}
+
 model Question {
-  id                String   @id @default(cuid())
-  question          String
-  answer            String
-  gameId            String
-  options           Json? // for mcq questions
-  percentageCorrect Float? // for open_ended questions
-  isCorrect         Boolean? // for mcq questions
-  questionType      GameType
-  userAnswer        String?
+  id           String   @id @default(cuid())
+  question     String
+  answer       String
+  options      String[]
+  questionType String
+  explanation  String?
+  userAnswer   String?
+  isCorrect    Boolean?
+  orderIndex   Int?
+  gameId       String
+  game         Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
-  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  @@index([gameId])
+}
 
-  @@index([gameId], name: "gameId")
+model Attempt {
+  id             String   @id @default(cuid())
+  userId         String
+  gameId         String
+  score          Int
+  totalQuestions Int
+  correctAnswers Int
+  timeSpent      Int
+  createdAt      DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game    Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  answers AttemptAnswer[]
+
+  @@index([userId])
+  @@index([gameId])
+  @@index([createdAt])
+}
+
+model AttemptAnswer {
+  id             String  @id @default(cuid())
+  attemptId      String
+  questionId     String
+  selectedAnswer String
+  isCorrect      Boolean
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@index([questionId])
 }

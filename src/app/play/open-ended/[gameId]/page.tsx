@@ -1,25 +1,33 @@
+import { redirect } from "next/navigation";
 
-import React from "react";
 import OpenEnded from "@/components/OpenEnded";
 import { prisma } from "@/lib/db";
 import { getAuthSession } from "@/lib/nextauth";
-import { redirect } from "next/navigation";
 
-type Props = {
+type OpenEndedPageProps = {
   params: {
     gameId: string;
   };
 };
 
-const OpenEndedPage = async ({ params: { gameId } }: Props) => {
+export const metadata = {
+  title: "Open-Ended Game | Quizmify",
+};
+
+export default async function OpenEndedPage({
+  params: { gameId },
+}: OpenEndedPageProps) {
   const session = await getAuthSession();
+
   if (!session?.user) {
-    return redirect("/");
+    redirect("/");
   }
 
-  const game = await prisma.game.findUnique({
+  const game = await prisma.game.findFirst({
     where: {
       id: gameId,
+      userId: session.user.id,
+      gameType: "open_ended",
     },
     include: {
       questions: {
@@ -31,10 +39,10 @@ const OpenEndedPage = async ({ params: { gameId } }: Props) => {
       },
     },
   });
-  if (!game || game.gameType !== "open_ended") {
-    return redirect("/quiz");
-  }
-  return <OpenEnded game={game} />;
-};
 
-export default OpenEndedPage;
+  if (!game) {
+    redirect("/quiz");
+  }
+
+  return <OpenEnded game={game} />;
+}

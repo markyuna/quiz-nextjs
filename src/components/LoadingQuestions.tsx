@@ -1,57 +1,62 @@
-'use client'
-import React from "react";
-import { Progress } from "./ui/progress";
-import Image from "next/image";
+"use client";
 
-type Props = { finished: boolean };
+import * as React from "react";
+import Image from "next/image";
+import { Progress } from "./ui/progress";
+
+type LoadingQuestionsProps = {
+  finished: boolean;
+};
 
 const loadingTexts = [
   "Generating questions...",
   "Unleashing the power of curiosity...",
-  "Diving deep into the ocean of questions..",
+  "Diving deep into the ocean of questions...",
   "Harnessing the collective knowledge of the cosmos...",
   "Igniting the flame of wonder and exploration...",
 ];
 
-const LoadingQuestions = ({ finished }: Props) => {
+export default function LoadingQuestions({
+  finished,
+}: LoadingQuestionsProps) {
   const [progress, setProgress] = React.useState(0);
   const [loadingText, setLoadingText] = React.useState(loadingTexts[0]);
 
   React.useEffect(() => {
+    if (finished) {
+      setProgress(100);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setProgress((prev) => Math.min(prev + (Math.random() < 0.1 ? 2 : 0.5), 95));
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [finished]);
+
+  React.useEffect(() => {
+    if (finished) return;
+
     const interval = setInterval(() => {
       const randomIndex = Math.floor(Math.random() * loadingTexts.length);
       setLoadingText(loadingTexts[randomIndex]);
     }, 2000);
-    return () => clearInterval(interval);
-  }, []);
 
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (finished) return 100;
-        if (prev === 100) {
-          return 0;
-        }
-        if (Math.random() < 0.1) {
-          return prev + 2;
-        }
-        return prev + 0.5;
-      });
-    }, 100);
     return () => clearInterval(interval);
   }, [finished]);
 
   return (
-    <div className="absolute -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 w-[70vw] md:w-[60vw] flex flex-col items-center">
-      <Image 
-        src={"/loading.gif"} 
-        width={400} 
-        height={400} 
-        alt="loading animation" />
-      <Progress value={progress} className="w-full mt-4" />
-      <h1 className="mt-2 text-xl">{loadingText}</h1>
-    </div>
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-3xl flex-col items-center justify-center px-4 py-10">
+      <Image
+        src="/loading.gif"
+        width={300}
+        height={300}
+        alt="Loading animation"
+        priority
+      />
+      <Progress value={progress} className="mt-4 w-full" />
+      <h1 className="mt-4 text-center text-xl font-medium">{loadingText}</h1>
+    </main>
   );
-};
-
-export default LoadingQuestions;
+}

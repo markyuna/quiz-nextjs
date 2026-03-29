@@ -1,9 +1,6 @@
-import React from "react";
-
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -16,66 +13,92 @@ type Props = {
   questions: Question[];
 };
 
-const QuestionsList = ({ questions }: Props) => {
-  if (!questions || questions.length === 0) {
-    return <p>No questions available.</p>;
+export default function QuestionsList({ questions }: Props) {
+  if (!questions?.length) {
+    return (
+      <p className="mt-4 text-center text-slate-300">
+        No questions available.
+      </p>
+    );
   }
 
-  let gameType = questions[0]?.questionType;
+  const gameType = questions[0]?.questionType;
 
   return (
-    <Table className="mt-4">
-      <TableCaption>End of list.</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[10px]">No.</TableHead>
-          <TableHead>Question & Correct Answer</TableHead>
-          <TableHead>Your Answer</TableHead>
+    <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-white/10 hover:bg-transparent">
+            <TableHead className="w-14">#</TableHead>
+            <TableHead>Question</TableHead>
+            <TableHead>Your Answer</TableHead>
+            <TableHead>Correct Answer</TableHead>
+            <TableHead className="text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
 
-          {gameType === "open_ended" && (
-            <TableHead className="w-[10px] text-right">Accuracy</TableHead>
-          )}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <>
-        {questions.map((question, index) => {
-          return (
-          <TableRow key={question.id}>
-            <TableCell className="font-medium">{index + 1}</TableCell>
-            <TableCell>
-              {question.question} 
-              <br />
-              <br />
-              <span className="font-semibold text-green-600">{question.answer}</span>
-            </TableCell>
-            {gameType === "mcq" && (
-            
-              <TableCell 
-                className={cn({
-                  "font-semibold text-green-600" : question.isCorrect,
-                  "font-semibold text-red-600" : !question.isCorrect,
+        <TableBody>
+          {questions.map((q, i) => (
+            <TableRow
+              key={q.id}
+              className="border-white/10 hover:bg-white/5"
+            >
+              <TableCell className="align-top font-medium">
+                {i + 1}
+              </TableCell>
+
+              <TableCell className="align-top text-slate-100">
+                <div className="space-y-1">
+                  <p>{q.question}</p>
+
+                  {"explanation" in q &&
+                    typeof q.explanation === "string" &&
+                    q.explanation.trim().length > 0 && (
+                      <p className="text-xs text-slate-400">
+                        💡 {q.explanation}
+                      </p>
+                    )}
+                </div>
+              </TableCell>
+
+              <TableCell
+                className={cn("align-top font-medium", {
+                  "text-emerald-400": q.isCorrect === true,
+                  "text-rose-400": q.isCorrect === false,
+                  "text-slate-300": q.isCorrect == null,
                 })}
               >
-                {question.userAnswer}
+                {q.userAnswer ?? "-"}
               </TableCell>
-            )}
 
-            {gameType === "open_ended" && (
-              <TableCell>{question.userAnswer}</TableCell>
-            )}
-            {gameType === "open_ended" && (
-              <TableCell className="text-right">
-                {question.percentageCorrect}
+              <TableCell className="align-top font-medium text-emerald-400">
+                {q.answer}
               </TableCell>
-            )}
-          </TableRow>
-          );
-        })}
-        </>
-      </TableBody>
-    </Table>
+
+              <TableCell className="align-top text-right">
+                <span
+                  className={cn(
+                    "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                    {
+                      "bg-emerald-500/15 text-emerald-300":
+                        q.isCorrect === true,
+                      "bg-rose-500/15 text-rose-300":
+                        q.isCorrect === false,
+                      "bg-white/10 text-slate-300": q.isCorrect == null,
+                    }
+                  )}
+                >
+                  {q.isCorrect === true
+                    ? "Correct"
+                    : q.isCorrect === false
+                    ? "Wrong"
+                    : "Pending"}
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
-};
-
-export default QuestionsList;
+}
