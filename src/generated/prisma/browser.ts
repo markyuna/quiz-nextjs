@@ -62,3 +62,8 @@ export type Attempt = Prisma.AttemptModel
  * 
  */
 export type AttemptAnswer = Prisma.AttemptAnswerModel
+/**
+ * Model UserQuestionProgress
+ * 
+ */
+export type UserQuestionProgress = Prisma.UserQuestionProgressModel

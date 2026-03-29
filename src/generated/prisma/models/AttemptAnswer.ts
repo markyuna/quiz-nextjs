@@ -196,6 +196,7 @@ export type AttemptAnswerOrderByWithRelationInput = {
 
 export type AttemptAnswerWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  attemptId_questionId?: Prisma.AttemptAnswerAttemptIdQuestionIdCompoundUniqueInput
   AND?: Prisma.AttemptAnswerWhereInput | Prisma.AttemptAnswerWhereInput[]
   OR?: Prisma.AttemptAnswerWhereInput[]
   NOT?: Prisma.AttemptAnswerWhereInput | Prisma.AttemptAnswerWhereInput[]
@@ -204,7 +205,7 @@ export type AttemptAnswerWhereUniqueInput = Prisma.AtLeast<{
   selectedAnswer?: Prisma.StringFilter<"AttemptAnswer"> | string
   isCorrect?: Prisma.BoolFilter<"AttemptAnswer"> | boolean
   attempt?: Prisma.XOR<Prisma.AttemptScalarRelationFilter, Prisma.AttemptWhereInput>
-}, "id">
+}, "id" | "attemptId_questionId">
 
 export type AttemptAnswerOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -291,6 +292,11 @@ export type AttemptAnswerListRelationFilter = {
 
 export type AttemptAnswerOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type AttemptAnswerAttemptIdQuestionIdCompoundUniqueInput = {
+  attemptId: string
+  questionId: string
 }
 
 export type AttemptAnswerCountOrderByAggregateInput = {

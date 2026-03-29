@@ -392,7 +392,8 @@ export const ModelName = {
   McqQuestion: 'McqQuestion',
   Question: 'Question',
   Attempt: 'Attempt',
-  AttemptAnswer: 'AttemptAnswer'
+  AttemptAnswer: 'AttemptAnswer',
+  UserQuestionProgress: 'UserQuestionProgress'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -408,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "account" | "session" | "user" | "game" | "topicCount" | "mcqQuestion" | "question" | "attempt" | "attemptAnswer"
+    modelProps: "account" | "session" | "user" | "game" | "topicCount" | "mcqQuestion" | "question" | "attempt" | "attemptAnswer" | "userQuestionProgress"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1078,6 +1079,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UserQuestionProgress: {
+      payload: Prisma.$UserQuestionProgressPayload<ExtArgs>
+      fields: Prisma.UserQuestionProgressFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserQuestionProgressFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserQuestionProgressFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>
+        }
+        findFirst: {
+          args: Prisma.UserQuestionProgressFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserQuestionProgressFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>
+        }
+        findMany: {
+          args: Prisma.UserQuestionProgressFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>[]
+        }
+        create: {
+          args: Prisma.UserQuestionProgressCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>
+        }
+        createMany: {
+          args: Prisma.UserQuestionProgressCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserQuestionProgressCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>[]
+        }
+        delete: {
+          args: Prisma.UserQuestionProgressDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>
+        }
+        update: {
+          args: Prisma.UserQuestionProgressUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserQuestionProgressDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserQuestionProgressUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserQuestionProgressUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserQuestionProgressUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserQuestionProgressPayload>
+        }
+        aggregate: {
+          args: Prisma.UserQuestionProgressAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserQuestionProgress>
+        }
+        groupBy: {
+          args: Prisma.UserQuestionProgressGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserQuestionProgressGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserQuestionProgressCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserQuestionProgressCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1210,7 +1285,8 @@ export const QuestionScalarFieldEnum = {
   userAnswer: 'userAnswer',
   isCorrect: 'isCorrect',
   orderIndex: 'orderIndex',
-  gameId: 'gameId'
+  gameId: 'gameId',
+  sourceQuestionId: 'sourceQuestionId'
 } as const
 
 export type QuestionScalarFieldEnum = (typeof QuestionScalarFieldEnum)[keyof typeof QuestionScalarFieldEnum]
@@ -1239,6 +1315,20 @@ export const AttemptAnswerScalarFieldEnum = {
 } as const
 
 export type AttemptAnswerScalarFieldEnum = (typeof AttemptAnswerScalarFieldEnum)[keyof typeof AttemptAnswerScalarFieldEnum]
+
+
+export const UserQuestionProgressScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  questionId: 'questionId',
+  wrongCount: 'wrongCount',
+  correctCount: 'correctCount',
+  needsReview: 'needsReview',
+  lastAnsweredCorrectly: 'lastAnsweredCorrectly',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserQuestionProgressScalarFieldEnum = (typeof UserQuestionProgressScalarFieldEnum)[keyof typeof UserQuestionProgressScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1451,6 +1541,7 @@ export type GlobalOmitConfig = {
   question?: Prisma.QuestionOmit
   attempt?: Prisma.AttemptOmit
   attemptAnswer?: Prisma.AttemptAnswerOmit
+  userQuestionProgress?: Prisma.UserQuestionProgressOmit
 }
 
 /* Types for Logging */

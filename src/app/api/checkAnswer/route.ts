@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { getAuthSession } from "@/lib/nextauth";
@@ -14,25 +13,16 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-
-    const parsedBody = checkAnswerSchema.parse({
-      questionId: body.questionId,
-      userAnswer: body.userAnswer,
-    });
+    const { questionId, userAnswer } = checkAnswerSchema.parse(body);
 
     const question = await prisma.question.findUnique({
       where: {
-        id: parsedBody.questionId,
+        id: questionId,
       },
       select: {
         id: true,
         answer: true,
-        gameId: true,
-        game: {
-          select: {
-            userId: true,
-          },
-        },
+        sourceQuestionId: true,
       },
     });
 
@@ -43,38 +33,37 @@ export async function POST(req: Request) {
       );
     }
 
-    if (question.game.userId !== session.user.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-    }
-
     const normalizedCorrectAnswer = question.answer.trim().toLowerCase();
-    const normalizedUserAnswer = parsedBody.userAnswer.trim().toLowerCase();
-
+    const normalizedUserAnswer = userAnswer.trim().toLowerCase();
     const correct = normalizedCorrectAnswer === normalizedUserAnswer;
 
-    await prisma.question.update({
-      where: {
-        id: parsedBody.questionId,
-      },
-      data: {
-        userAnswer: parsedBody.userAnswer.trim(),
-        isCorrect: correct,
-      },
-    });
+    const trackedQuestionId = question.sourceQuestionId ?? question.id;
 
-    const correctAnswersCount = await prisma.question.count({
+    await prisma.userQuestionProgress.upsert({
       where: {
-        gameId: question.gameId,
-        isCorrect: true,
+        userId_questionId: {
+          userId: session.user.id,
+          questionId: trackedQuestionId,
+        },
       },
-    });
-
-    await prisma.game.update({
-      where: {
-        id: question.gameId,
-      },
-      data: {
-        score: correctAnswersCount,
+      update: correct
+        ? {
+            correctCount: { increment: 1 },
+            needsReview: false,
+            lastAnsweredCorrectly: true,
+          }
+        : {
+            wrongCount: { increment: 1 },
+            needsReview: true,
+            lastAnsweredCorrectly: false,
+          },
+      create: {
+        userId: session.user.id,
+        questionId: trackedQuestionId,
+        correctCount: correct ? 1 : 0,
+        wrongCount: correct ? 0 : 1,
+        needsReview: !correct,
+        lastAnsweredCorrectly: correct,
       },
     });
 
@@ -88,15 +77,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("POST /api/checkAnswer error:", error);
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Datos inválidos", details: error.flatten() },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
-      { error: "Error interno del servidor" },
+      { error: "Error al comprobar la respuesta" },
       { status: 500 }
     );
   }

@@ -38,20 +38,21 @@ model Session {
 }
 
 model User {
-  id                 String    @id @default(cuid())
+  id                 String                 @id @default(cuid())
   name               String?
-  email              String?   @unique
+  email              String?                @unique
   emailVerified      DateTime?
   image              String?
   password           String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  subscriptionStatus String    @default("free")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  subscriptionStatus String                 @default("free")
   stripeCustomerId   String?
   accounts           Account[]
   sessions           Session[]
   games              Game[]
   attempts           Attempt[]
+  questionProgress   UserQuestionProgress[]
 }
 
 model Game {
@@ -92,19 +93,22 @@ model McqQuestion {
 }
 
 model Question {
-  id           String   @id @default(cuid())
-  question     String
-  answer       String
-  options      String[]
-  questionType String
-  explanation  String?
-  userAnswer   String?
-  isCorrect    Boolean?
-  orderIndex   Int?
-  gameId       String
-  game         Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  id               String                 @id @default(cuid())
+  question         String
+  answer           String
+  options          String[]
+  questionType     String
+  explanation      String?
+  userAnswer       String?
+  isCorrect        Boolean?
+  orderIndex       Int?
+  gameId           String
+  sourceQuestionId String?
+  game             Game                   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  progressEntries  UserQuestionProgress[]
 
   @@index([gameId])
+  @@index([sourceQuestionId])
 }
 
 model Attempt {
@@ -133,6 +137,7 @@ model AttemptAnswer {
   isCorrect      Boolean
   attempt        Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
+  @@unique([attemptId, questionId])
   @@index([attemptId])
   @@index([questionId])
 }
@@ -140,4 +145,23 @@ model AttemptAnswer {
 enum GameType {
   mcq
   open_ended
+}
+
+model UserQuestionProgress {
+  id                    String   @id @default(cuid())
+  userId                String
+  questionId            String
+  wrongCount            Int      @default(0)
+  correctCount          Int      @default(0)
+  needsReview           Boolean  @default(false)
+  lastAnsweredCorrectly Boolean  @default(false)
+  updatedAt             DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+  @@index([userId])
+  @@index([questionId])
+  @@index([userId, needsReview])
 }

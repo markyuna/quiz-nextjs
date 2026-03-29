@@ -82,80 +82,102 @@ export default async function DashboardPage() {
   const userId = session.user.id;
 
   const [
-    attempts,
-    attemptsCount,
-    gamesCount,
-    totalCorrectAggregate,
-    totalAnsweredAggregate,
-    totalTimeAggregate,
-    recentAttempts,
-  ] = await Promise.all([
-    prisma.attempt.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        score: true,
-        correctAnswers: true,
-        totalQuestions: true,
-        timeSpent: true,
-        createdAt: true,
-        game: {
-          select: {
-            id: true,
-            topic: true,
-            gameType: true,
-          },
+  attempts,
+  attemptsCount,
+  gamesCount,
+  totalCorrectAggregate,
+  totalAnsweredAggregate,
+  totalTimeAggregate,
+  recentAttempts,
+  lastGame,
+  mistakesCount,
+] = await Promise.all([
+  prisma.attempt.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      score: true,
+      correctAnswers: true,
+      totalQuestions: true,
+      timeSpent: true,
+      createdAt: true,
+      game: {
+        select: {
+          id: true,
+          topic: true,
+          gameType: true,
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
-    prisma.attempt.count({
-      where: { userId },
-    }),
-    prisma.game.count({
-      where: { userId },
-    }),
-    prisma.attempt.aggregate({
-      where: { userId },
-      _sum: {
-        correctAnswers: true,
-      },
-    }),
-    prisma.attempt.aggregate({
-      where: { userId },
-      _sum: {
-        totalQuestions: true,
-      },
-    }),
-    prisma.attempt.aggregate({
-      where: { userId },
-      _sum: {
-        timeSpent: true,
-      },
-    }),
-    prisma.attempt.findMany({
-      where: { userId },
-      take: 5,
-      orderBy: {
-        createdAt: "desc",
-      },
-      select: {
-        id: true,
-        score: true,
-        createdAt: true,
-        correctAnswers: true,
-        totalQuestions: true,
-        game: {
-          select: {
-            id: true,
-            topic: true,
-          },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  }),
+  prisma.attempt.count({
+    where: { userId },
+  }),
+  prisma.game.count({
+    where: { userId },
+  }),
+  prisma.attempt.aggregate({
+    where: { userId },
+    _sum: {
+      correctAnswers: true,
+    },
+  }),
+  prisma.attempt.aggregate({
+    where: { userId },
+    _sum: {
+      totalQuestions: true,
+    },
+  }),
+  prisma.attempt.aggregate({
+    where: { userId },
+    _sum: {
+      timeSpent: true,
+    },
+  }),
+  prisma.attempt.findMany({
+    where: { userId },
+    take: 5,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      score: true,
+      createdAt: true,
+      correctAnswers: true,
+      totalQuestions: true,
+      game: {
+        select: {
+          id: true,
+          topic: true,
         },
       },
-    }),
-  ]);
+    },
+  }),
+
+  // 👉 NUEVO
+  prisma.game.findFirst({
+    where: { userId },
+    orderBy: {
+      timeStarted: "desc",
+    },
+    select: {
+      topic: true,
+    },
+  }),
+
+  prisma.attemptAnswer.count({
+    where: {
+      isCorrect: false,
+      attempt: {
+        userId,
+      },
+    },
+  }),
+]);
 
   const totalCorrect = totalCorrectAggregate._sum.correctAnswers ?? 0;
   const totalAnswered = totalAnsweredAggregate._sum.totalQuestions ?? 0;
@@ -282,7 +304,10 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <QuizMeCard />
+        <QuizMeCard
+          lastTopic={lastGame?.topic ?? null}
+          hasMistakes={mistakesCount > 0}
+        />
         <HistoryCard />
       </section>
 

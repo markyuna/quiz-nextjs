@@ -59,7 +59,8 @@ export const ModelName = {
   McqQuestion: 'McqQuestion',
   Question: 'Question',
   Attempt: 'Attempt',
-  AttemptAnswer: 'AttemptAnswer'
+  AttemptAnswer: 'AttemptAnswer',
+  UserQuestionProgress: 'UserQuestionProgress'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -171,7 +172,8 @@ export const QuestionScalarFieldEnum = {
   userAnswer: 'userAnswer',
   isCorrect: 'isCorrect',
   orderIndex: 'orderIndex',
-  gameId: 'gameId'
+  gameId: 'gameId',
+  sourceQuestionId: 'sourceQuestionId'
 } as const
 
 export type QuestionScalarFieldEnum = (typeof QuestionScalarFieldEnum)[keyof typeof QuestionScalarFieldEnum]
@@ -200,6 +202,20 @@ export const AttemptAnswerScalarFieldEnum = {
 } as const
 
 export type AttemptAnswerScalarFieldEnum = (typeof AttemptAnswerScalarFieldEnum)[keyof typeof AttemptAnswerScalarFieldEnum]
+
+
+export const UserQuestionProgressScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  questionId: 'questionId',
+  wrongCount: 'wrongCount',
+  correctCount: 'correctCount',
+  needsReview: 'needsReview',
+  lastAnsweredCorrectly: 'lastAnsweredCorrectly',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserQuestionProgressScalarFieldEnum = (typeof UserQuestionProgressScalarFieldEnum)[keyof typeof UserQuestionProgressScalarFieldEnum]
 
 
 export const SortOrder = {
