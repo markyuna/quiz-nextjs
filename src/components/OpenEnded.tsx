@@ -13,7 +13,7 @@ import {
   Loader2,
   Timer,
 } from "lucide-react";
-import { Game, Question } from "@prisma/client";
+import { Game, Question } from "@/generated/prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
 
 import BlankAnswerInput from "./BlankAnswerInput";

@@ -6,7 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Question } from "@prisma/client";
+import { Question } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 
 type Props = {

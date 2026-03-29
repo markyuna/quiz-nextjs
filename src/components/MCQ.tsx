@@ -14,7 +14,7 @@ import {
   BarChart3,
   RotateCcw,
 } from "lucide-react";
-import { Game, Question } from "@prisma/client";
+import { Game, Question } from "@/generated/prisma/client";
 
 import MCQCounter from "./MCQCounter";
 import { Button, buttonVariants } from "./ui/button";

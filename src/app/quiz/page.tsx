@@ -19,5 +19,12 @@ export default async function QuizPage({ searchParams }: QuizPageProps) {
     redirect("/");
   }
 
-  return <QuizCreation topicParam={searchParams.topic ?? ""} />;
+  const topicParam =
+    searchParams.topic &&
+    searchParams.topic !== "undefined" &&
+    searchParams.topic !== "null"
+      ? searchParams.topic
+      : "";
+
+  return <QuizCreation topicParam={topicParam} />;
 }

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
-import { strict_output } from "@/lib/gpt";
+import { strict_output, type OutputFormat } from "@/lib/gpt";
 import { getQuestionsSchema } from "@/schemas/form/quiz";
 
 export const runtime = "nodejs";
 export const maxDuration = 10;
+export const dynamic = "force-dynamic";
 
 type OpenEndedQuestion = {
   question: string;
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
         ? `Generate a hard open-ended question about ${topic}.`
         : `Generate a hard multiple-choice question about ${topic}.`;
 
-    const outputFormat =
+    const outputFormat: OutputFormat =
       type === "mcq"
         ? {
             question: "question",
@@ -53,11 +54,15 @@ export async function POST(req: Request) {
         outputFormat
       );
 
-      if (!aiQuestions || !Array.isArray(aiQuestions) || aiQuestions.length === 0) {
+      if (
+        !aiQuestions ||
+        !Array.isArray(aiQuestions) ||
+        aiQuestions.length === 0
+      ) {
         throw new Error("OpenAI returned no valid questions.");
       }
 
-      questions = aiQuestions;
+      questions = aiQuestions as OpenEndedQuestion[] | MCQQuestion[];
     } catch (error) {
       console.error("⚠️ OpenAI failed, using fallback questions instead.", error);
 
@@ -80,10 +85,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ questions }, { status: 200 });
   } catch (error) {
     if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
 
     console.error("questions route error:", error);

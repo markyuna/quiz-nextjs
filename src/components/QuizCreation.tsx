@@ -44,10 +44,15 @@ export default function QuizCreation({ topicParam }: QuizCreationProps) {
   const [showLoader, setShowLoader] = React.useState(false);
   const [finished, setFinished] = React.useState(false);
 
+  const normalizedTopic =
+    topicParam && topicParam !== "undefined" && topicParam !== "null"
+      ? topicParam
+      : "";
+
   const form = useForm<QuizCreationInput>({
     resolver: zodResolver(quizCreationSchema),
     defaultValues: {
-      topic: topicParam ?? "",
+      topic: normalizedTopic,
       amount: 3,
       difficulty: "easy",
       type: "mcq",
@@ -129,6 +134,7 @@ export default function QuizCreation({ topicParam }: QuizCreationProps) {
                       <Input
                         placeholder="Enter a topic..."
                         {...field}
+                        value={field.value ?? ""}
                         className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
                       />
                     </FormControl>

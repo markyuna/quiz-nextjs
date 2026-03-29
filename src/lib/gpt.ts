@@ -4,25 +4,33 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-type OutputFormat = Record<string, string | string[] | OutputFormat>;
+export type OutputValue = string | string[] | OutputObject;
+
+export interface OutputObject {
+  [key: string]: OutputValue;
+}
+
+export type OutputFormat = OutputObject;
+type ParsedItem = Record<string, unknown>;
 
 function buildFormatPrompt(outputFormat: OutputFormat, isListInput: boolean) {
-  const hasDynamicElements = /<.*?>/.test(JSON.stringify(outputFormat));
-  const hasListOutput = /\[.*?\]/.test(JSON.stringify(outputFormat));
+  const serializedFormat = JSON.stringify(outputFormat);
+  const hasDynamicElements = /<.*?>/.test(serializedFormat);
+  const hasListOutput = /\[.*?\]/.test(serializedFormat);
 
-  let prompt = `You must return valid JSON matching this format: ${JSON.stringify(outputFormat)}.`;
-  prompt += ` Do not include markdown fences. Return raw JSON only.`;
+  let prompt = `You must return valid JSON matching this format: ${serializedFormat}.`;
+  prompt += " Do not include markdown fences. Return raw JSON only.";
 
   if (hasListOutput) {
-    prompt += ` If a field is a list of choices, choose the best matching value.`;
+    prompt += " If a field is a list of choices, choose the best matching value.";
   }
 
   if (hasDynamicElements) {
-    prompt += ` Any text inside < > means you must generate that content dynamically.`;
+    prompt += " Any text inside < > means you must generate that content dynamically.";
   }
 
   if (isListInput) {
-    prompt += ` Return an array of JSON objects, one for each input item.`;
+    prompt += " Return an array of JSON objects, one for each input item.";
   }
 
   return prompt;
@@ -71,38 +79,54 @@ export async function strict_output(
         console.log("OpenAI response:", content);
       }
 
-      let parsed = JSON.parse(content);
+      const rawParsed: unknown = JSON.parse(content);
 
-      if (!isListInput) {
-        parsed = [parsed];
-      }
-
-      if (!Array.isArray(parsed)) {
-        throw new Error("Expected an array output.");
+      let parsed: ParsedItem[];
+      if (isListInput) {
+        if (Array.isArray(rawParsed)) {
+          parsed = rawParsed as ParsedItem[];
+        } else {
+          throw new TypeError("Expected an array output.");
+        }
+      } else {
+        parsed = [rawParsed as ParsedItem];
       }
 
       for (const item of parsed) {
-        for (const key in outputFormat) {
+        for (const key of Object.keys(outputFormat)) {
           if (/<.*?>/.test(key)) continue;
 
           if (!(key in item)) {
             throw new Error(`Missing key: ${key}`);
           }
 
-          if (Array.isArray(outputFormat[key])) {
-            const choices = outputFormat[key] as string[];
+          const formatValue = outputFormat[key];
+          const itemValue = item[key];
 
-            if (Array.isArray(item[key])) {
-              item[key] = item[key][0];
+          if (Array.isArray(formatValue)) {
+            const choices = formatValue;
+
+            let normalizedValue = itemValue;
+
+            if (Array.isArray(normalizedValue)) {
+              normalizedValue = normalizedValue[0];
             }
 
-            if (typeof item[key] === "string" && item[key].includes(":")) {
-              item[key] = item[key].split(":")[0];
+            if (
+              typeof normalizedValue === "string" &&
+              normalizedValue.includes(":")
+            ) {
+              normalizedValue = normalizedValue.split(":")[0];
             }
 
-            if (!choices.includes(item[key]) && defaultCategory) {
-              item[key] = defaultCategory;
+            if (
+              typeof normalizedValue !== "string" ||
+              (!choices.includes(normalizedValue) && defaultCategory)
+            ) {
+              normalizedValue = defaultCategory;
             }
+
+            item[key] = normalizedValue;
           }
         }
       }
