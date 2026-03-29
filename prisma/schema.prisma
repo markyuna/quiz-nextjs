@@ -99,6 +99,7 @@ model Question {
   answer       String
   options      String[]
   questionType String
+  explanation  String?
   userAnswer   String?
   isCorrect    Boolean?
   gameId       String

@@ -33,6 +33,7 @@ type MCQProps = {
 
 type CheckAnswerResponse = {
   correct: boolean;
+  correctAnswer: string;
 };
 
 const MCQ = ({ game }: MCQProps) => {
@@ -55,15 +56,19 @@ const MCQ = ({ game }: MCQProps) => {
   const { mutate: checkAnswer, isPending } = useMutation({
     mutationFn: async ({
       questionId,
-      answer,
+      userAnswer,
     }: {
       questionId: string;
-      answer: string;
+      userAnswer: string;
     }) => {
-      const response = await axios.post<CheckAnswerResponse>("/api/checkAnswer", {
-        questionId,
-        answer,
-      });
+      const response = await axios.post<CheckAnswerResponse>(
+        "/api/checkAnswer",
+        {
+          questionId,
+          userAnswer,
+        }
+      );
+
       return response.data;
     },
     onSuccess: (data) => {
@@ -76,7 +81,7 @@ const MCQ = ({ game }: MCQProps) => {
       } else {
         toast({
           title: "Mauvaise réponse ❌",
-          description: "Ce n’était pas la bonne réponse.",
+          description: `La bonne réponse était : ${data.correctAnswer}`,
           variant: "destructive",
         });
       }
@@ -98,7 +103,7 @@ const MCQ = ({ game }: MCQProps) => {
 
     checkAnswer({
       questionId: currentQuestion.id,
-      answer: option,
+      userAnswer: option,
     });
   };
 
@@ -115,10 +120,7 @@ const MCQ = ({ game }: MCQProps) => {
     window.location.href = `/statistics/${game.id}`;
   };
 
-  const elapsedSeconds = differenceInSeconds(
-    now,
-    new Date(game.timeStarted)
-  );
+  const elapsedSeconds = differenceInSeconds(now, new Date(game.timeStarted));
 
   const getOptionStyle = (option: string) => {
     const isCorrect = option === currentQuestion.answer;
@@ -155,7 +157,9 @@ const MCQ = ({ game }: MCQProps) => {
 
             <div className="flex items-center gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-3 text-cyan-100">
               <Timer className="h-5 w-5" />
-              <span className="font-medium">{formatTimeDelta(elapsedSeconds)}</span>
+              <span className="font-medium">
+                {formatTimeDelta(elapsedSeconds)}
+              </span>
             </div>
           </div>
 

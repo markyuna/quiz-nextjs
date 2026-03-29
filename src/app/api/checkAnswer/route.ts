@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     const parsedBody = checkAnswerSchema.parse({
       questionId: body.questionId,
-      userAnswer: body.userAnswer ?? body.answer,
+      userAnswer: body.userAnswer,
     });
 
     const question = await prisma.question.findUnique({
@@ -27,6 +27,12 @@ export async function POST(req: Request) {
       select: {
         id: true,
         answer: true,
+        gameId: true,
+        game: {
+          select: {
+            userId: true,
+          },
+        },
       },
     });
 
@@ -37,10 +43,40 @@ export async function POST(req: Request) {
       );
     }
 
+    if (question.game.userId !== session.user.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     const normalizedCorrectAnswer = question.answer.trim().toLowerCase();
     const normalizedUserAnswer = parsedBody.userAnswer.trim().toLowerCase();
 
     const correct = normalizedCorrectAnswer === normalizedUserAnswer;
+
+    await prisma.question.update({
+      where: {
+        id: parsedBody.questionId,
+      },
+      data: {
+        userAnswer: parsedBody.userAnswer.trim(),
+        isCorrect: correct,
+      },
+    });
+
+    const correctAnswersCount = await prisma.question.count({
+      where: {
+        gameId: question.gameId,
+        isCorrect: true,
+      },
+    });
+
+    await prisma.game.update({
+      where: {
+        id: question.gameId,
+      },
+      data: {
+        score: correctAnswersCount,
+      },
+    });
 
     return NextResponse.json(
       {
@@ -50,7 +86,7 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("POST /api/check-answer error:", error);
+    console.error("POST /api/checkAnswer error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

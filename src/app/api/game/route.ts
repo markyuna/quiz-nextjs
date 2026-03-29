@@ -49,6 +49,14 @@ function jsonError(message: string, status: number, details?: unknown) {
   );
 }
 
+function normalizeTopic(topic: string): string {
+  return topic.trim().replace(/\s+/g, " ");
+}
+
+function normalizeDifficulty(difficulty: Difficulty): Difficulty {
+  return difficulty.toLowerCase() as Difficulty;
+}
+
 function shuffleArray<T>(items: T[]): T[] {
   const result = [...items];
 
@@ -58,14 +66,6 @@ function shuffleArray<T>(items: T[]): T[] {
   }
 
   return result;
-}
-
-function normalizeTopic(topic: string): string {
-  return topic.trim().replace(/\s+/g, " ");
-}
-
-function normalizeDifficulty(difficulty: Difficulty): Difficulty {
-  return difficulty.toLowerCase() as Difficulty;
 }
 
 function ensureValidOptions(options: string[], correctAnswer: string): string[] {
@@ -81,17 +81,17 @@ function ensureValidOptions(options: string[], correctAnswer: string): string[] 
     uniqueOptions.unshift(normalizedCorrectAnswer);
   }
 
-  const withoutDuplicates = Array.from(new Set(uniqueOptions)).slice(0, 4);
+  const finalOptions = Array.from(new Set(uniqueOptions)).slice(0, 4);
 
-  while (withoutDuplicates.length < 4) {
-    withoutDuplicates.push(`Option ${withoutDuplicates.length + 1}`);
+  while (finalOptions.length < 4) {
+    finalOptions.push(`Option ${finalOptions.length + 1}`);
   }
 
-  if (!withoutDuplicates.includes(normalizedCorrectAnswer)) {
-    withoutDuplicates[0] = normalizedCorrectAnswer;
+  if (!finalOptions.includes(normalizedCorrectAnswer)) {
+    finalOptions[0] = normalizedCorrectAnswer;
   }
 
-  return shuffleArray(withoutDuplicates);
+  return shuffleArray(finalOptions);
 }
 
 function dedupeQuestions<T extends { question: string }>(questions: T[]): T[] {
@@ -100,6 +100,7 @@ function dedupeQuestions<T extends { question: string }>(questions: T[]): T[] {
 
   for (const q of questions) {
     const key = q.question.trim().toLowerCase();
+
     if (!seen.has(key)) {
       seen.add(key);
       result.push(q);
@@ -116,12 +117,10 @@ async function fetchExistingMCQQuestions(params: {
 }): Promise<SupabaseMCQQuestion[]> {
   const { topic, difficulty, amount } = params;
 
-  const normalizedTopic = normalizeTopic(topic);
-
   const { data, error } = await supabaseAdmin
     .from("mcq_questions")
     .select("*")
-    .ilike("topic", normalizedTopic)
+    .ilike("topic", topic)
     .eq("difficulty", difficulty)
     .eq("is_active", true)
     .order("usage_count", { ascending: true })
@@ -147,13 +146,13 @@ async function generateQuestionsWithAI(params: {
       {
         role: "developer",
         content:
-          "Generate high-quality multiple-choice quiz questions. Return only valid JSON. Each question must have exactly 4 answer options and exactly 1 correct answer. Avoid duplicates.",
+          "Generate high-quality multiple-choice quiz questions. Return only valid JSON. Each question must have exactly 4 options and exactly 1 correct answer. Avoid duplicates.",
       },
       {
         role: "user",
         content: `Generate ${amount} multiple-choice quiz questions about "${topic}" with difficulty "${difficulty}".
 
-Return a JSON object with this shape:
+Return a JSON object with this exact structure:
 {
   "questions": [
     {
@@ -205,10 +204,10 @@ async function saveGeneratedQuestionsToSupabase(params: {
   if (questions.length === 0) return;
 
   const rows = questions.map((q) => ({
-    topic: normalizeTopic(topic),
+    topic,
     difficulty,
     question: q.question,
-    options: ensureValidOptions(q.options, q.correct_answer),
+    options: q.options,
     correct_answer: q.correct_answer,
     explanation: q.explanation,
     is_active: true,
@@ -264,6 +263,8 @@ export async function POST(req: Request) {
         difficulty,
         amount,
       });
+
+      console.log("Preguntas encontradas en Supabase:", cachedQuestions.length);
     } catch (error) {
       console.error("Error leyendo cache desde Supabase:", error);
       cachedQuestions = [];
@@ -294,6 +295,11 @@ export async function POST(req: Request) {
             difficulty,
             questions: dedupedAIQuestions,
           });
+
+          console.log(
+            "Preguntas guardadas en Supabase:",
+            dedupedAIQuestions.length
+          );
         } catch (error) {
           console.error("Error guardando cache en Supabase:", error);
         }
@@ -325,6 +331,10 @@ export async function POST(req: Request) {
         question: question.question,
         answer: question.correct_answer,
         options: ensureValidOptions(question.options, question.correct_answer),
+        explanation:
+          "explanation" in question && question.explanation
+            ? question.explanation
+            : null,
         gameId: game.id,
         questionType: "mcq",
       })),
@@ -354,30 +364,6 @@ export async function POST(req: Request) {
 
     if (error instanceof z.ZodError) {
       return jsonError("Datos inválidos", 400, error.flatten());
-    }
-
-    if (
-      error instanceof Error &&
-      error.message.startsWith("Supabase fetch error:")
-    ) {
-      return jsonError("Error obteniendo preguntas desde Supabase.", 500, {
-        message: error.message,
-      });
-    }
-
-    if (
-      error instanceof Error &&
-      error.message.startsWith("Supabase insert error:")
-    ) {
-      return jsonError("Error guardando preguntas generadas en Supabase.", 500, {
-        message: error.message,
-      });
-    }
-
-    if (error instanceof Error && error.message.includes("OpenAI")) {
-      return jsonError("Error generando preguntas con IA.", 500, {
-        message: error.message,
-      });
     }
 
     if (error instanceof Error) {
