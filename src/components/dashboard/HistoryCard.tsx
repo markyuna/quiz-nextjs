@@ -25,7 +25,7 @@ const RecentActivityCard = async (props: Props) => {
     },
   });
   return (
-    <Card className="col-span-4 lg:col-span-3">
+    <Card className="rounded-3xl border-white/10 bg-white/5 shadow-2xl shadow-black/20 backdrop-blur-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">
           <Link href="/history">Recent Activity</Link>
