@@ -61,7 +61,7 @@ function shuffleArray<T>(items: T[]): T[] {
 }
 
 function normalizeTopic(topic: string): string {
-  return topic.trim();
+  return topic.trim().replace(/\s+/g, " ");
 }
 
 function normalizeDifficulty(difficulty: Difficulty): Difficulty {
@@ -75,23 +75,23 @@ function ensureValidOptions(options: string[], correctAnswer: string): string[] 
     .map((option) => option.trim())
     .filter((option) => option.length > 0);
 
-  const uniqueOptions = new Set(sanitizedOptions);
+  const uniqueOptions = Array.from(new Set(sanitizedOptions));
 
-  if (!uniqueOptions.has(normalizedCorrectAnswer)) {
-    uniqueOptions.add(normalizedCorrectAnswer);
+  if (!uniqueOptions.includes(normalizedCorrectAnswer)) {
+    uniqueOptions.unshift(normalizedCorrectAnswer);
   }
 
-  const finalOptions = Array.from(uniqueOptions).slice(0, 4);
+  const withoutDuplicates = Array.from(new Set(uniqueOptions)).slice(0, 4);
 
-  if (!finalOptions.includes(normalizedCorrectAnswer)) {
-    finalOptions[0] = normalizedCorrectAnswer;
+  while (withoutDuplicates.length < 4) {
+    withoutDuplicates.push(`Option ${withoutDuplicates.length + 1}`);
   }
 
-  while (finalOptions.length < 4) {
-    finalOptions.push(`Option ${finalOptions.length + 1}`);
+  if (!withoutDuplicates.includes(normalizedCorrectAnswer)) {
+    withoutDuplicates[0] = normalizedCorrectAnswer;
   }
 
-  return shuffleArray(finalOptions);
+  return shuffleArray(withoutDuplicates);
 }
 
 function dedupeQuestions<T extends { question: string }>(questions: T[]): T[] {
@@ -113,15 +113,18 @@ async function fetchExistingMCQQuestions(params: {
   topic: string;
   difficulty: Difficulty;
   amount: number;
-}) {
+}): Promise<SupabaseMCQQuestion[]> {
   const { topic, difficulty, amount } = params;
+
+  const normalizedTopic = normalizeTopic(topic);
 
   const { data, error } = await supabaseAdmin
     .from("mcq_questions")
     .select("*")
-    .ilike("topic", topic)
+    .ilike("topic", normalizedTopic)
     .eq("difficulty", difficulty)
     .eq("is_active", true)
+    .order("usage_count", { ascending: true })
     .limit(amount);
 
   if (error) {
@@ -135,7 +138,7 @@ async function generateQuestionsWithAI(params: {
   topic: string;
   difficulty: Difficulty;
   amount: number;
-}) {
+}): Promise<GeneratedQuestion[]> {
   const { topic, difficulty, amount } = params;
 
   const response = await openai.chat.completions.create({
@@ -144,65 +147,34 @@ async function generateQuestionsWithAI(params: {
       {
         role: "developer",
         content:
-          "Generate high-quality multiple-choice quiz questions. Return only valid structured JSON matching the requested schema. Each question must have exactly 4 options and exactly 1 correct answer. Avoid duplicates.",
+          "Generate high-quality multiple-choice quiz questions. Return only valid JSON. Each question must have exactly 4 answer options and exactly 1 correct answer. Avoid duplicates.",
       },
       {
         role: "user",
-        content: `Generate ${amount} multiple-choice questions about "${topic}" with difficulty "${difficulty}". 
-Return:
-- question
-- options (exactly 4)
-- correct_answer
-- explanation
+        content: `Generate ${amount} multiple-choice quiz questions about "${topic}" with difficulty "${difficulty}".
+
+Return a JSON object with this shape:
+{
+  "questions": [
+    {
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correct_answer": "string",
+      "explanation": "string"
+    }
+  ]
+}
 
 Rules:
 - exactly 4 options per question
-- only 1 correct answer
-- the correct answer must appear inside options
-- concise, clear English
+- exactly 1 correct answer
+- the correct answer must appear in options
+- concise and clear English
 - no markdown
 - no extra text`,
       },
     ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "quiz_questions",
-        strict: true,
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            questions: {
-              type: "array",
-              minItems: amount,
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  question: { type: "string" },
-                  options: {
-                    type: "array",
-                    minItems: 4,
-                    maxItems: 4,
-                    items: { type: "string" },
-                  },
-                  correct_answer: { type: "string" },
-                  explanation: { type: "string" },
-                },
-                required: [
-                  "question",
-                  "options",
-                  "correct_answer",
-                  "explanation",
-                ],
-              },
-            },
-          },
-          required: ["questions"],
-        },
-      },
-    },
+    response_format: { type: "json_object" },
     temperature: 0.7,
   });
 
@@ -233,10 +205,10 @@ async function saveGeneratedQuestionsToSupabase(params: {
   if (questions.length === 0) return;
 
   const rows = questions.map((q) => ({
-    topic,
+    topic: normalizeTopic(topic),
     difficulty,
     question: q.question,
-    options: q.options,
+    options: ensureValidOptions(q.options, q.correct_answer),
     correct_answer: q.correct_answer,
     explanation: q.explanation,
     is_active: true,
@@ -251,14 +223,14 @@ async function saveGeneratedQuestionsToSupabase(params: {
 }
 
 async function incrementUsageCount(questions: SupabaseMCQQuestion[]) {
-  await Promise.all(
-    questions.map((question) =>
-      supabaseAdmin
-        .from("mcq_questions")
-        .update({ usage_count: question.usage_count + 1 })
-        .eq("id", question.id)
-    )
+  const updates = questions.map((question) =>
+    supabaseAdmin
+      .from("mcq_questions")
+      .update({ usage_count: question.usage_count + 1 })
+      .eq("id", question.id)
   );
+
+  await Promise.allSettled(updates);
 }
 
 export async function POST(req: Request) {
@@ -284,14 +256,25 @@ export async function POST(req: Request) {
       );
     }
 
-    let questions = await fetchExistingMCQQuestions({
-      topic,
-      difficulty,
-      amount,
-    });
+    let cachedQuestions: SupabaseMCQQuestion[] = [];
 
-    if (questions.length < amount) {
-      const missingAmount = amount - questions.length;
+    try {
+      cachedQuestions = await fetchExistingMCQQuestions({
+        topic,
+        difficulty,
+        amount,
+      });
+    } catch (error) {
+      console.error("Error leyendo cache desde Supabase:", error);
+      cachedQuestions = [];
+    }
+
+    let finalQuestions: Array<SupabaseMCQQuestion | GeneratedQuestion> = [
+      ...cachedQuestions,
+    ];
+
+    if (finalQuestions.length < amount) {
+      const missingAmount = amount - finalQuestions.length;
 
       const aiQuestions = await generateQuestionsWithAI({
         topic,
@@ -304,26 +287,29 @@ export async function POST(req: Request) {
         missingAmount
       );
 
-      await saveGeneratedQuestionsToSupabase({
-        topic,
-        difficulty,
-        questions: dedupedAIQuestions,
-      });
+      if (dedupedAIQuestions.length > 0) {
+        try {
+          await saveGeneratedQuestionsToSupabase({
+            topic,
+            difficulty,
+            questions: dedupedAIQuestions,
+          });
+        } catch (error) {
+          console.error("Error guardando cache en Supabase:", error);
+        }
 
-      const refreshedQuestions = await fetchExistingMCQQuestions({
-        topic,
-        difficulty,
-        amount,
-      });
-
-      questions = refreshedQuestions;
+        finalQuestions = dedupeQuestions([
+          ...finalQuestions,
+          ...dedupedAIQuestions,
+        ]);
+      }
     }
 
-    if (questions.length === 0) {
+    finalQuestions = dedupeQuestions(finalQuestions).slice(0, amount);
+
+    if (finalQuestions.length === 0) {
       return jsonError("No se pudieron obtener ni generar preguntas.", 500);
     }
-
-    const finalQuestions = dedupeQuestions(questions).slice(0, amount);
 
     const game = await prisma.game.create({
       data: {
@@ -338,17 +324,16 @@ export async function POST(req: Request) {
       data: finalQuestions.map((question) => ({
         question: question.question,
         answer: question.correct_answer,
-        options: ensureValidOptions(
-          question.options,
-          question.correct_answer
-        ),
+        options: ensureValidOptions(question.options, question.correct_answer),
         gameId: game.id,
         questionType: "mcq",
       })),
     });
 
     await incrementUsageCount(
-      finalQuestions.filter((q): q is SupabaseMCQQuestion => "id" in q)
+      finalQuestions.filter(
+        (q): q is SupabaseMCQQuestion => "id" in q && typeof q.id === "string"
+      )
     );
 
     return NextResponse.json(
@@ -356,7 +341,11 @@ export async function POST(req: Request) {
         success: true,
         gameId: game.id,
         source:
-          questions.length >= amount ? "supabase_or_ai_cached" : "partial_ai",
+          cachedQuestions.length >= amount
+            ? "supabase_cache"
+            : cachedQuestions.length > 0
+            ? "supabase_plus_ai"
+            : "ai",
       },
       { status: 200 }
     );
@@ -371,18 +360,30 @@ export async function POST(req: Request) {
       error instanceof Error &&
       error.message.startsWith("Supabase fetch error:")
     ) {
-      return jsonError("Error obteniendo preguntas desde Supabase.", 500);
+      return jsonError("Error obteniendo preguntas desde Supabase.", 500, {
+        message: error.message,
+      });
     }
 
     if (
       error instanceof Error &&
       error.message.startsWith("Supabase insert error:")
     ) {
-      return jsonError("Error guardando preguntas generadas en Supabase.", 500);
+      return jsonError("Error guardando preguntas generadas en Supabase.", 500, {
+        message: error.message,
+      });
     }
 
     if (error instanceof Error && error.message.includes("OpenAI")) {
-      return jsonError("Error generando preguntas con IA.", 500);
+      return jsonError("Error generando preguntas con IA.", 500, {
+        message: error.message,
+      });
+    }
+
+    if (error instanceof Error) {
+      return jsonError("Error interno del servidor", 500, {
+        message: error.message,
+      });
     }
 
     return jsonError("Error interno del servidor", 500);

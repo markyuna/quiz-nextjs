@@ -1,6 +1,11 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { getServerSession, type DefaultSession, type NextAuthOptions } from "next-auth";
+import {
+  getServerSession,
+  type DefaultSession,
+  type NextAuthOptions,
+} from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+
 import { prisma } from "@/lib/db";
 
 declare module "next-auth" {
@@ -27,10 +32,13 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
+  pages: {
+    signIn: "/login",
+  },
   providers: [
-     GoogleProvider({
-     clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
     }),
   ],
   callbacks: {
@@ -48,6 +56,9 @@ export const authOptions: NextAuthOptions = {
         where: {
           email: token.email,
         },
+        select: {
+          id: true,
+        },
       });
 
       if (dbUser) {
@@ -56,7 +67,8 @@ export const authOptions: NextAuthOptions = {
 
       return token;
     },
-    session({ session, token }) {
+
+    async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id;
       }

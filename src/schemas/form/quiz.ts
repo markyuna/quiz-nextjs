@@ -17,7 +17,7 @@ export const getQuestionsSchema = z.object({
 export const checkAnswerSchema = z.object({
   questionId: z.string().min(1, "Question ID is required"),
   userAnswer: z.string().min(1, "Answer is required"),
-});
+}); 
 
 export const endGameSchema = z.object({
   gameId: z.string(),

@@ -10,13 +10,13 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Number(searchParams.get("limit") ?? 5), 20);
 
     let query = supabaseAdmin
-      .from("quiz_questions")
+      .from("mcq_questions")
       .select("*")
       .eq("is_active", true)
       .limit(limit);
 
     if (topic) {
-      query = query.eq("topic", topic);
+      query = query.ilike("topic", `%${topic.trim()}%`);
     }
 
     if (
@@ -30,7 +30,12 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("GET /api/questions Supabase error:", error);
+
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
 
     const shuffled = [...(data ?? [])].sort(() => Math.random() - 0.5);
@@ -40,7 +45,7 @@ export async function GET(req: NextRequest) {
       questions: shuffled.slice(0, limit),
     });
   } catch (error) {
-    console.error(error);
+    console.error("GET /api/questions unexpected error:", error);
 
     return NextResponse.json(
       { error: "Failed to fetch questions" },
