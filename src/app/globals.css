@@ -85,26 +85,8 @@
   }
 }
 
-.wordcloud-clickable svg {
-  overflow: visible;
-}
 
-.wordcloud-clickable svg text {
-  cursor: pointer;
-  opacity: 0.82;
-  transition:
-    opacity 0.18s ease,
-    transform 0.10s ease,
-    filter 0.18s ease;
-  transform-box: fill-box;
-  transform-origin: center;
-}
 
-.wordcloud-clickable svg text:hover {
-  opacity: 1;
-  transform: scale(1.0);
-  filter: brightness(1.08);
-}
 
 @layer components {
   .glass-card {

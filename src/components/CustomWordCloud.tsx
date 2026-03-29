@@ -61,7 +61,7 @@ export default function CustomWordCloud({ formattedTopics }: Props) {
   );
 
   return (
-    <div className="wordcloud-stable">
+    <div className="cursor-pointer">
       <D3WordCloud
         height={550}
         data={data}
