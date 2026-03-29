@@ -1,4 +1,5 @@
 import dynamic from "next/dynamic";
+
 import {
   Card,
   CardContent,
@@ -18,19 +19,31 @@ const CustomWordCloud = dynamic(() => import("../CustomWordCloud"), {
 });
 
 export default async function HotTopicsCard() {
-  const topics = await prisma.topicCount.findMany();
+  const topics = await prisma.game.groupBy({
+    by: ["topic"],
+    _count: {
+      topic: true,
+    },
+    orderBy: {
+      _count: {
+        topic: "desc",
+      },
+    },
+  });
 
-  const formattedTopics = topics.map((topic) => ({
-    text: topic.topic,
-    value: topic.count,
-  }));
+  const formattedTopics = topics
+    .filter((topic) => topic.topic && topic.topic.trim() !== "")
+    .map((topic) => ({
+      text: topic.topic,
+      value: topic._count.topic,
+    }));
 
   return (
-    <Card className="col-span-4">
+    <Card className="col-span-4 rounded-3xl border-border/50">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">Hot Topics</CardTitle>
         <CardDescription>
-          Click on a topic to start a quiz on it.
+          Click on a topic to start a new quiz.
         </CardDescription>
       </CardHeader>
 

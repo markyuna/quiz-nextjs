@@ -11,6 +11,8 @@ import {
   Loader2,
   Timer,
   XCircle,
+  BarChart3,
+  RotateCcw,
 } from "lucide-react";
 import { Game, Question } from "@prisma/client";
 
@@ -33,7 +35,21 @@ type MCQProps = {
 
 type CheckAnswerResponse = {
   correct: boolean;
-  correctAnswer: string;
+  correctAnswer?: string;
+};
+
+type AnswerRecord = {
+  questionId: string;
+  selectedAnswer: string;
+  isCorrect: boolean;
+};
+
+type SubmitQuizResponse = {
+  success: boolean;
+  attemptId: string;
+  score: number;
+  correctAnswers: number;
+  totalQuestions: number;
 };
 
 const MCQ = ({ game }: MCQProps) => {
@@ -44,6 +60,17 @@ const MCQ = ({ game }: MCQProps) => {
   const [hasAnswered, setHasAnswered] = React.useState(false);
   const [score, setScore] = React.useState(0);
   const [now, setNow] = React.useState(new Date());
+  const [answers, setAnswers] = React.useState<AnswerRecord[]>([]);
+  const [lastCorrectAnswer, setLastCorrectAnswer] = React.useState<string | null>(
+    null
+  );
+  const [lastAnswerWasCorrect, setLastAnswerWasCorrect] = React.useState<
+    boolean | null
+  >(null);
+  const [quizFinished, setQuizFinished] = React.useState(false);
+  const [finalResult, setFinalResult] = React.useState<SubmitQuizResponse | null>(
+    null
+  );
 
   const currentQuestion = game.questions[questionIndex];
   const isLastQuestion = questionIndex === game.questions.length - 1;
@@ -53,7 +80,7 @@ const MCQ = ({ game }: MCQProps) => {
     return () => clearInterval(interval);
   }, []);
 
-  const { mutate: checkAnswer, isPending } = useMutation({
+  const { mutate: checkAnswer, isPending: isCheckingAnswer } = useMutation({
     mutationFn: async ({
       questionId,
       userAnswer,
@@ -61,18 +88,25 @@ const MCQ = ({ game }: MCQProps) => {
       questionId: string;
       userAnswer: string;
     }) => {
-      const response = await axios.post<CheckAnswerResponse>(
-        "/api/checkAnswer",
-        {
-          questionId,
-          userAnswer,
-        }
-      );
+      const response = await axios.post<CheckAnswerResponse>("/api/checkAnswer", {
+        questionId,
+        userAnswer,
+      });
 
       return response.data;
     },
-    onSuccess: (data) => {
-      if (data.correct) {
+    onSuccess: (data, variables) => {
+      const isCorrect = data.correct;
+      const correctAnswer =
+        data.correctAnswer ??
+        game.questions.find((q) => q.id === variables.questionId)?.answer ??
+        "";
+
+      setHasAnswered(true);
+      setLastAnswerWasCorrect(isCorrect);
+      setLastCorrectAnswer(correctAnswer);
+
+      if (isCorrect) {
         setScore((prev) => prev + 1);
         toast({
           title: "Bonne réponse ✅",
@@ -81,10 +115,25 @@ const MCQ = ({ game }: MCQProps) => {
       } else {
         toast({
           title: "Mauvaise réponse ❌",
-          description: `La bonne réponse était : ${data.correctAnswer}`,
+          description: `La bonne réponse était : ${correctAnswer}`,
           variant: "destructive",
         });
       }
+
+      setAnswers((prev) => {
+        const filtered = prev.filter(
+          (answer) => answer.questionId !== variables.questionId
+        );
+
+        return [
+          ...filtered,
+          {
+            questionId: variables.questionId,
+            selectedAnswer: variables.userAnswer,
+            isCorrect,
+          },
+        ];
+      });
     },
     onError: () => {
       toast({
@@ -95,11 +144,40 @@ const MCQ = ({ game }: MCQProps) => {
     },
   });
 
+  const { mutate: submitQuiz, isPending: isSubmittingQuiz } = useMutation({
+    mutationFn: async (payload: {
+      gameId: string;
+      timeSpent: number;
+      answers: { questionId: string; selectedAnswer: string }[];
+    }) => {
+      const response = await axios.post<SubmitQuizResponse>(
+        "/api/quiz/submit",
+        payload
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setFinalResult(data);
+      setQuizFinished(true);
+
+      toast({
+        title: "Quiz terminé 🎉",
+        description: `Score final : ${data.score}%`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible d’enregistrer le résultat final.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (option: string) => {
-    if (hasAnswered || isPending) return;
+    if (hasAnswered || isCheckingAnswer || isSubmittingQuiz) return;
 
     setSelectedAnswer(option);
-    setHasAnswered(true);
 
     checkAnswer({
       questionId: currentQuestion.id,
@@ -108,16 +186,39 @@ const MCQ = ({ game }: MCQProps) => {
   };
 
   const handleNext = () => {
-    if (!hasAnswered) return;
+    if (!hasAnswered || isSubmittingQuiz) return;
 
     if (!isLastQuestion) {
       setQuestionIndex((prev) => prev + 1);
       setSelectedAnswer(null);
       setHasAnswered(false);
+      setLastCorrectAnswer(null);
+      setLastAnswerWasCorrect(null);
       return;
     }
 
-    window.location.href = `/statistics/${game.id}`;
+    const elapsedSeconds = differenceInSeconds(now, new Date(game.timeStarted));
+
+    submitQuiz({
+      gameId: game.id,
+      timeSpent: elapsedSeconds,
+      answers: answers.map((answer) => ({
+        questionId: answer.questionId,
+        selectedAnswer: answer.selectedAnswer,
+      })),
+    });
+  };
+
+  const handleRestartLocal = () => {
+    setQuestionIndex(0);
+    setSelectedAnswer(null);
+    setHasAnswered(false);
+    setScore(0);
+    setAnswers([]);
+    setLastCorrectAnswer(null);
+    setLastAnswerWasCorrect(null);
+    setQuizFinished(false);
+    setFinalResult(null);
   };
 
   const elapsedSeconds = differenceInSeconds(now, new Date(game.timeStarted));
@@ -140,6 +241,120 @@ const MCQ = ({ game }: MCQProps) => {
 
     return "border-white/10 bg-white/5 opacity-70";
   };
+
+  if (!currentQuestion && !quizFinished) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 px-4 py-10">
+        <div className="mx-auto flex max-w-4xl flex-col gap-6">
+          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-white">
+                Aucune question trouvée
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/quiz"
+                className={cn(
+                  buttonVariants(),
+                  "bg-gradient-to-r from-cyan-500 to-blue-600 text-white"
+                )}
+              >
+                Volver
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (quizFinished) {
+    const totalQuestions = finalResult?.totalQuestions ?? game.questions.length;
+    const correctAnswers = finalResult?.correctAnswers ?? score;
+    const finalScore = finalResult?.score ?? Math.round((score / totalQuestions) * 100);
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 px-4 py-10">
+        <div className="mx-auto flex max-w-4xl flex-col gap-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl">
+            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+              Quiz terminé
+            </p>
+            <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">
+              {game.topic}
+            </h1>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-sm text-slate-300">Score final</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-white">{finalScore}%</p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-sm text-slate-300">
+                  Bonnes réponses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-white">
+                  {correctAnswers}/{totalQuestions}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-sm text-slate-300">Temps total</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-white">
+                  {formatTimeDelta(elapsedSeconds)}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={handleRestartLocal}
+              className="h-12 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 text-white shadow-lg shadow-cyan-900/30 hover:opacity-95"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Rejouer localement
+            </Button>
+
+            <Link
+              href={`/statistics/${game.id}`}
+              className={cn(
+                buttonVariants({ variant: "secondary" }),
+                "h-12 rounded-2xl px-6"
+              )}
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Voir les statistiques
+            </Link>
+
+            <Link
+              href="/quiz"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "h-12 rounded-2xl px-6 text-slate-300 hover:bg-white/5 hover:text-white"
+              )}
+            >
+              Nouveau quiz
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 px-4 py-10">
@@ -187,7 +402,7 @@ const MCQ = ({ game }: MCQProps) => {
                     key={`${option}-${index}`}
                     type="button"
                     onClick={() => handleSelect(option)}
-                    disabled={hasAnswered || isPending}
+                    disabled={hasAnswered || isCheckingAnswer || isSubmittingQuiz}
                     className={cn(
                       "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left text-base font-medium text-slate-100 transition-all duration-200 shadow-lg shadow-black/10",
                       getOptionStyle(option)
@@ -207,6 +422,21 @@ const MCQ = ({ game }: MCQProps) => {
               })}
             </div>
 
+            <div className="mt-2">
+              {hasAnswered && lastAnswerWasCorrect === false && lastCorrectAnswer && (
+                <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                  Bonne réponse :{" "}
+                  <span className="font-semibold">{lastCorrectAnswer}</span>
+                </div>
+              )}
+
+              {hasAnswered && lastAnswerWasCorrect === true && (
+                <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                  Bonne réponse, continue comme ça.
+                </div>
+              )}
+            </div>
+
             <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-200">
                 Score: <span className="font-bold text-white">{score}</span> /{" "}
@@ -216,14 +446,26 @@ const MCQ = ({ game }: MCQProps) => {
               {hasAnswered ? (
                 <Button
                   onClick={handleNext}
+                  disabled={isSubmittingQuiz}
                   className="h-12 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 text-white shadow-lg shadow-cyan-900/30 hover:opacity-95"
                 >
-                  {isLastQuestion ? "Voir les résultats" : "Question suivante"}
-                  <ChevronRight className="ml-2 h-4 w-4" />
+                  {isSubmittingQuiz ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      {isLastQuestion
+                        ? "Terminer le quiz"
+                        : "Question suivante"}
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-                  {isPending ? (
+                  {isCheckingAnswer ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Vérification...
