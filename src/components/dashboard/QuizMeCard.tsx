@@ -79,11 +79,11 @@ const QuizMeCard = ({
   ];
 
   return (
-    <Card className="group relative overflow-hidden border-white/10 bg-white/60 shadow-xl shadow-black/5 dark:bg-white/5">
+    <Card className="group relative h-full max-h-[420px] overflow-hidden rounded-[1.75rem] border-white/10 bg-white/60 shadow-xl shadow-black/5 transition-all duration-300 hover:scale-[1.01] dark:bg-white/5">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/15 via-fuchsia-500/10 to-cyan-500/15 opacity-80" />
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
 
-      <CardContent className="relative z-10 p-6 sm:p-8">
+      <CardContent className="relative z-10 p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-xl dark:bg-white/5">
@@ -92,9 +92,7 @@ const QuizMeCard = ({
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Quiz me
-              </h2>
+              <h2 className="text-xl font-bold tracking-tight">Quiz me</h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
                 Use quick actions to start a new quiz, explore random topics,
                 revisit previous subjects, and strengthen weak areas.
@@ -102,12 +100,12 @@ const QuizMeCard = ({
             </div>
           </div>
 
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/60 shadow-sm backdrop-blur-xl dark:bg-white/5">
-            <Brain className="h-6 w-6 text-violet-500 dark:text-violet-300" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/60 shadow-sm backdrop-blur-xl dark:bg-white/5">
+            <Brain className="h-5 w-5 text-violet-500 dark:text-violet-300" />
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {actions.map((action) => {
             const Icon = action.icon;
 
@@ -124,16 +122,16 @@ const QuizMeCard = ({
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/60 dark:bg-white/5">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/60 dark:bg-white/5">
                       <Icon className="h-5 w-5 text-violet-500 dark:text-violet-300" />
                     </div>
 
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold text-foreground">
                         {action.title}
                       </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="mt-1 truncate text-sm text-muted-foreground">
                         {action.description}
                       </p>
                     </div>

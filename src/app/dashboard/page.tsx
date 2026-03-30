@@ -82,107 +82,112 @@ export default async function DashboardPage() {
   const userId = session.user.id;
 
   const [
-  attempts,
-  attemptsCount,
-  gamesCount,
-  totalCorrectAggregate,
-  totalAnsweredAggregate,
-  totalTimeAggregate,
-  recentAttempts,
-  lastGame,
-  mistakesCount,
-] = await Promise.all([
-  prisma.attempt.findMany({
-    where: { userId },
-    select: {
-      id: true,
-      score: true,
-      correctAnswers: true,
-      totalQuestions: true,
-      timeSpent: true,
-      createdAt: true,
-      game: {
-        select: {
-          id: true,
-          topic: true,
-          gameType: true,
+    attempts,
+    attemptsCount,
+    gamesCount,
+    totalCorrectAggregate,
+    totalAnsweredAggregate,
+    totalTimeAggregate,
+    recentAttempts,
+    lastGame,
+    mistakesCount,
+  ] = await Promise.all([
+    prisma.attempt.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        score: true,
+        correctAnswers: true,
+        totalQuestions: true,
+        timeSpent: true,
+        createdAt: true,
+        game: {
+          select: {
+            id: true,
+            topic: true,
+            gameType: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  }),
-  prisma.attempt.count({
-    where: { userId },
-  }),
-  prisma.game.count({
-    where: { userId },
-  }),
-  prisma.attempt.aggregate({
-    where: { userId },
-    _sum: {
-      correctAnswers: true,
-    },
-  }),
-  prisma.attempt.aggregate({
-    where: { userId },
-    _sum: {
-      totalQuestions: true,
-    },
-  }),
-  prisma.attempt.aggregate({
-    where: { userId },
-    _sum: {
-      timeSpent: true,
-    },
-  }),
-  prisma.attempt.findMany({
-    where: { userId },
-    take: 5,
-    orderBy: {
-      createdAt: "desc",
-    },
-    select: {
-      id: true,
-      score: true,
-      createdAt: true,
-      correctAnswers: true,
-      totalQuestions: true,
-      game: {
-        select: {
-          id: true,
-          topic: true,
-        },
+      orderBy: {
+        createdAt: "desc",
       },
-    },
-  }),
+    }),
 
-  // 👉 NUEVO
+    prisma.attempt.count({
+      where: { userId },
+    }),
+
+    prisma.game.count({
+      where: { userId },
+    }),
+
+    prisma.attempt.aggregate({
+      where: { userId },
+      _sum: {
+        correctAnswers: true,
+      },
+    }),
+
+    prisma.attempt.aggregate({
+      where: { userId },
+      _sum: {
+        totalQuestions: true,
+      },
+    }),
+
+    prisma.attempt.aggregate({
+      where: { userId },
+      _sum: {
+        timeSpent: true,
+      },
+    }),
+
+    prisma.attempt.findMany({
+      where: { userId },
+      take: 5,
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        score: true,
+        createdAt: true,
+        correctAnswers: true,
+        totalQuestions: true,
+        game: {
+          select: {
+            id: true,
+            topic: true,
+          },
+        },
+      },
+    }),
+
     prisma.game.findFirst({
-    where: {
-      userId,
-      topic: {
-        notIn: ["Practice Mistakes"],
-      },
-    },
-    orderBy: {
-      timeStarted: "desc",
-    },
-    select: {
-      topic: true,
-    },
-  }),
-
-  prisma.attemptAnswer.count({
-    where: {
-      isCorrect: false,
-      attempt: {
+      where: {
         userId,
+        topic: {
+          notIn: ["Practice Mistakes"],
+        },
       },
-    },
-  }),
-]);
+      orderBy: {
+        timeStarted: "desc",
+      },
+      select: {
+        topic: true,
+      },
+    }),
+
+    prisma.attemptAnswer.count({
+      where: {
+        isCorrect: false,
+        attempt: {
+          userId,
+        },
+      },
+    }),
+  ]);
 
   const totalCorrect = totalCorrectAggregate._sum.correctAnswers ?? 0;
   const totalAnswered = totalAnsweredAggregate._sum.totalQuestions ?? 0;
@@ -229,7 +234,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-10 pt-2 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:px-8">
       <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/60 p-6 shadow-2xl shadow-black/5 backdrop-blur-xl dark:bg-white/5 sm:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-cyan-500/10" />
         <div className="pointer-events-none absolute -left-10 top-0 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl" />
@@ -278,7 +283,7 @@ export default async function DashboardPage() {
           return (
             <Card
               key={item.key}
-              className="group relative overflow-hidden border-white/10 bg-white/60 shadow-xl shadow-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:bg-white/5"
+              className="group relative overflow-hidden rounded-[1.75rem] border-white/10 bg-white/60 shadow-xl shadow-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:bg-white/5"
             >
               <div
                 className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${item.accent}`}
@@ -308,21 +313,26 @@ export default async function DashboardPage() {
         })}
       </section>
 
-      <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <QuizMeCard
-          lastTopic={lastGame?.topic ?? null}
-          hasMistakes={mistakesCount > 0}
-        />
-        <HistoryCard />
+      <section className="mt-6 grid gap-4 lg:grid-cols-2 items-stretch">
+        <div className="h-full">
+          <QuizMeCard
+            lastTopic={lastGame?.topic ?? null}
+            hasMistakes={mistakesCount > 0}
+          />
+        </div>
+
+        <div className="h-full">
+          <HistoryCard />
+        </div>
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-7">
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-4 h-full">
           <HotTopicsCard />
         </div>
 
-        <div className="lg:col-span-3">
-          <Card className="relative h-full overflow-hidden border-white/10 bg-white/60 shadow-xl shadow-black/5 dark:bg-white/5">
+        <div className="lg:col-span-3 ">
+          <Card className="relative h-full overflow-hidden rounded-[1.75rem] border-white/10 bg-white/60 shadow-xl shadow-black/5 dark:bg-white/5">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-fuchsia-500/10 via-transparent to-violet-500/10" />
 
             <CardHeader className="relative z-10 flex flex-row items-center justify-between">
@@ -342,7 +352,7 @@ export default async function DashboardPage() {
 
             <CardContent className="relative z-10">
               {recentAttempts.length === 0 ? (
-                <div className="flex min-h-[260px] items-center justify-center rounded-[1.75rem] border border-dashed border-white/10 bg-white/40 p-6 text-center backdrop-blur-xl dark:bg-white/5">
+                <div className="flex min-h-[260px] items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/40 p-6 text-center backdrop-blur-xl dark:bg-white/5">
                   <div className="max-w-sm space-y-2">
                     <p className="text-sm font-semibold">No quiz attempts yet</p>
                     <p className="text-sm leading-6 text-muted-foreground">
@@ -353,60 +363,53 @@ export default async function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {recentAttempts.map((attempt) => (
-                    <div
-                      key={attempt.id}
-                      className="rounded-[1.5rem] border border-white/10 bg-white/50 p-4 shadow-sm backdrop-blur-xl transition-all duration-200 hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold">
-                            {attempt.game.topic || "Untitled quiz"}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {formatDate(attempt.createdAt)}
-                          </p>
+                  {recentAttempts.map((attempt) => {
+                    const topic = attempt.game?.topic ?? "Untitled quiz";
+                    const progress =
+                      attempt.totalQuestions > 0
+                        ? Math.round(
+                            (attempt.correctAnswers / attempt.totalQuestions) *
+                              100
+                          )
+                        : 0;
+
+                    return (
+                      <div
+                        key={attempt.id}
+                        className="rounded-[1.25rem] border border-white/10 bg-white/50 p-4 shadow-sm backdrop-blur-xl transition-all duration-200 hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold">{topic}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {formatDate(attempt.createdAt)}
+                            </p>
+                          </div>
+
+                          <div className="shrink-0 rounded-full border border-white/10 bg-white/70 px-3 py-1 text-sm font-semibold backdrop-blur-xl dark:bg-white/10">
+                            {attempt.score}%
+                          </div>
                         </div>
 
-                        <div className="shrink-0 rounded-full border border-white/10 bg-white/70 px-3 py-1 text-sm font-semibold backdrop-blur-xl dark:bg-white/10">
-                          {attempt.score}%
+                        <div className="mt-3">
+                          <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                            <span>
+                              {attempt.correctAnswers}/{attempt.totalQuestions}{" "}
+                              correct
+                            </span>
+                            <span>{progress}%</span>
+                          </div>
+
+                          <div className="h-2 overflow-hidden rounded-full bg-muted/70">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
                         </div>
                       </div>
-
-                      <div className="mt-3">
-                        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>
-                            {attempt.correctAnswers}/{attempt.totalQuestions} correct
-                          </span>
-                          <span>
-                            {attempt.totalQuestions > 0
-                              ? Math.round(
-                                  (attempt.correctAnswers /
-                                    attempt.totalQuestions) *
-                                    100
-                                )
-                              : 0}
-                            %
-                          </span>
-                        </div>
-
-                        <div className="h-2 overflow-hidden rounded-full bg-muted/70">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500"
-                            style={{
-                              width: `${
-                                attempt.totalQuestions > 0
-                                  ? (attempt.correctAnswers /
-                                      attempt.totalQuestions) *
-                                    100
-                                  : 0
-                              }%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -40,25 +40,35 @@ const HistoryComponent = async ({ limit, userId }: Props) => {
   return (
     <div className="space-y-4">
       {attempts.map((attempt) => {
+        const gameType = attempt.game?.gameType ?? "mcq";
+        const topic = attempt.game?.topic ?? "Untitled quiz";
+        const gameId = attempt.game?.id;
+
         return (
           <div
             className="flex items-start justify-between rounded-2xl border border-border/50 p-4 transition-colors hover:bg-muted/40"
             key={attempt.id}
           >
             <div className="flex items-start">
-              {attempt.game.gameType === "mcq" ? (
+              {gameType === "mcq" ? (
                 <CopyCheck className="mr-3 mt-1 h-5 w-5" />
               ) : (
                 <Edit2 className="mr-3 mt-1 h-5 w-5" />
               )}
 
               <div className="ml-2 space-y-2">
-                <Link
-                  href={`/statistics/${attempt.game.id}`}
-                  className="text-base font-medium leading-none underline"
-                >
-                  {attempt.game.topic}
-                </Link>
+                {gameId ? (
+                  <Link
+                    href={`/statistics/${gameId}`}
+                    className="text-base font-medium leading-none underline"
+                  >
+                    {topic}
+                  </Link>
+                ) : (
+                  <p className="text-base font-medium leading-none">
+                    {topic}
+                  </p>
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="flex items-center rounded-lg bg-slate-800 px-2 py-1 text-xs text-white">
@@ -67,7 +77,7 @@ const HistoryComponent = async ({ limit, userId }: Props) => {
                   </p>
 
                   <p className="rounded-lg border px-2 py-1 text-xs text-muted-foreground">
-                    {attempt.game.gameType === "mcq" ? "MCQ" : "Open Ended"}
+                    {gameType === "mcq" ? "MCQ" : "Open Ended"}
                   </p>
                 </div>
 
