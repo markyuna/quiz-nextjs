@@ -31,12 +31,19 @@ const TOPICS = [
   "HTML",
 ];
 
+const DEFAULT_TOPIC = "JavaScript";
+
 const QuizMeCard = ({
   lastTopic = null,
   hasMistakes = false,
 }: QuizMeCardProps) => {
-  const randomTopic =
-    TOPICS[Math.floor(Math.random() * TOPICS.length)] ?? "JavaScript";
+  const [randomTopic, setRandomTopic] = React.useState(DEFAULT_TOPIC);
+
+  React.useEffect(() => {
+    const nextTopic =
+      TOPICS[Math.floor(Math.random() * TOPICS.length)] ?? DEFAULT_TOPIC;
+    setRandomTopic(nextTopic);
+  }, []);
 
   const actions = [
     {

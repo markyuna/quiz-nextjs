@@ -23,6 +23,11 @@ export async function POST(req: Request) {
         id: true,
         answer: true,
         sourceQuestionId: true,
+        game: {
+          select: {
+            userId: true,
+          },
+        },
       },
     });
 
@@ -33,10 +38,26 @@ export async function POST(req: Request) {
       );
     }
 
+    if (question.game.userId !== session.user.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     const normalizedCorrectAnswer = question.answer.trim().toLowerCase();
     const normalizedUserAnswer = userAnswer.trim().toLowerCase();
     const correct = normalizedCorrectAnswer === normalizedUserAnswer;
 
+    // ✅ Guardar la respuesta en la pregunta del juego actual
+    await prisma.question.update({
+      where: {
+        id: questionId,
+      },
+      data: {
+        userAnswer,
+        isCorrect: correct,
+      },
+    });
+
+    // ✅ Actualizar progreso para practice mistakes
     const trackedQuestionId = question.sourceQuestionId ?? question.id;
 
     await prisma.userQuestionProgress.upsert({

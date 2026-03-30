@@ -5,6 +5,16 @@ import { getAuthSession } from "@/lib/nextauth";
 
 const MAX_QUESTIONS = 10;
 
+type PracticeQuestion = {
+  id: string;
+  question: string;
+  answer: string;
+  options: string[];
+  questionType: string;
+  explanation: string | null;
+  sourceQuestionId: string | null;
+};
+
 export async function POST() {
   try {
     const session = await getAuthSession();
@@ -32,15 +42,53 @@ export async function POST() {
             options: true,
             questionType: true,
             explanation: true,
+            sourceQuestionId: true,
           },
         },
       },
-      take: MAX_QUESTIONS,
+      take: MAX_QUESTIONS * 3,
     });
 
-    const questionsToPractice = progressEntries
+    const rawQuestions = progressEntries
       .map((entry) => entry.question)
-      .filter((question) => question && question.options.length > 0);
+      .filter((question) => {
+        return (
+          !!question &&
+          question.question.trim() !== "" &&
+          question.answer.trim() !== "" &&
+          Array.isArray(question.options) &&
+          question.options.length > 0
+        );
+      });
+
+    const uniqueQuestionsMap = new Map<string, PracticeQuestion>();
+
+    for (const question of rawQuestions) {
+      const normalizedQuestion: PracticeQuestion = {
+        id: question.id,
+        question: question.question,
+        answer: question.answer,
+        options: question.options,
+        questionType: question.questionType || "mcq",
+        explanation: question.explanation ?? null,
+        sourceQuestionId: question.sourceQuestionId ?? null,
+      };
+
+      const dedupeKey =
+        normalizedQuestion.sourceQuestionId?.trim() ||
+        `${normalizedQuestion.question.trim().toLowerCase()}::${normalizedQuestion.answer
+          .trim()
+          .toLowerCase()}`;
+
+      if (!uniqueQuestionsMap.has(dedupeKey)) {
+        uniqueQuestionsMap.set(dedupeKey, normalizedQuestion);
+      }
+    }
+
+    const questionsToPractice = Array.from(uniqueQuestionsMap.values()).slice(
+      0,
+      MAX_QUESTIONS
+    );
 
     if (questionsToPractice.length === 0) {
       return NextResponse.json(
@@ -60,9 +108,9 @@ export async function POST() {
             question: question.question,
             answer: question.answer,
             options: question.options,
-            questionType: question.questionType || "mcq",
-            explanation: question.explanation ?? null,
-            sourceQuestionId: question.id,
+            questionType: question.questionType,
+            explanation: question.explanation,
+            sourceQuestionId: question.sourceQuestionId ?? question.id,
           })),
         },
       },

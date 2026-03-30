@@ -159,8 +159,13 @@ export default async function DashboardPage() {
   }),
 
   // 👉 NUEVO
-  prisma.game.findFirst({
-    where: { userId },
+    prisma.game.findFirst({
+    where: {
+      userId,
+      topic: {
+        notIn: ["Practice Mistakes"],
+      },
+    },
     orderBy: {
       timeStarted: "desc",
     },
