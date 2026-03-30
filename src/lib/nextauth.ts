@@ -20,18 +20,9 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-  }
-}
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: "jwt",
-  },
   pages: {
     signIn: "/login",
   },
@@ -42,37 +33,10 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user?.id) {
-        token.id = user.id;
-        return token;
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
       }
-
-      if (!token.email) {
-        return token;
-      }
-
-      const dbUser = await prisma.user.findUnique({
-        where: {
-          email: token.email,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (dbUser) {
-        token.id = dbUser.id;
-      }
-
-      return token;
-    },
-
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id;
-      }
-
       return session;
     },
   },
