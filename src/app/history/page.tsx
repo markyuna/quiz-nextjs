@@ -15,8 +15,8 @@ export const metadata = {
 export default async function HistoryPage() {
   const session = await getAuthSession();
 
-  if (!session?.user) {
-    redirect("/");
+  if (!session?.user?.id) {
+    redirect("/login");
   }
 
   return (

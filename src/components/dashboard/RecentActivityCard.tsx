@@ -16,10 +16,11 @@ import { prisma } from "@/lib/db";
 
 const RecentActivityCard = async () => {
   const session = await getAuthSession();
+  const userId = session?.user?.id;
 
-  if (!session?.user) {
-    return redirect("/");
-  }
+  if (!userId) {
+      redirect("/");
+    }
 
   const gamesCount = await prisma.game.count({
     where: {
@@ -61,7 +62,7 @@ const RecentActivityCard = async () => {
       <CardContent className="relative z-10 p-4 pt-0">
         <div className="rounded-[1.5rem] border border-white/10 bg-white/40 p-2 backdrop-blur-xl dark:bg-white/5">
           <div className="max-h-[300px] overflow-y-auto rounded-[1.25rem] pr-1">
-            <HistoryComponent limit={10} userId={session.user.id} />
+            <HistoryComponent limit={10} userId={userId} />
           </div>
         </div>
       </CardContent>

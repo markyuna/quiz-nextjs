@@ -16,20 +16,20 @@ import { prisma } from "@/lib/db";
 
 const HistoryCard = async () => {
   const session = await getAuthSession();
+  const userId = session?.user?.id;
 
-  if (!session?.user) {
-    return redirect("/");
+  if (!userId) {
+    redirect("/");
   }
 
   const attemptsCount = await prisma.attempt.count({
     where: {
-      userId: session.user.id,
+      userId,
     },
   });
 
   return (
     <Card className="relative h-full max-h-[420px] overflow-hidden rounded-[1.75rem] border-white/10 bg-white/60 shadow-xl shadow-black/5 transition-all duration-300 hover:scale-[1.01] dark:bg-white/5">
-      {/* background */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
       <div className="pointer-events-none absolute right-0 bottom-0 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl" />
 
@@ -62,7 +62,7 @@ const HistoryCard = async () => {
       <CardContent className="relative z-10 p-4 pt-0">
         <div className="rounded-[1.5rem] border border-white/10 bg-white/40 p-2 backdrop-blur-xl dark:bg-white/5">
           <div className="max-h-[300px] overflow-y-auto rounded-[1.25rem] pr-1">
-            <HistoryComponent limit={6} userId={session.user.id} />
+            <HistoryComponent limit={6} userId={userId} />
           </div>
         </div>
       </CardContent>
