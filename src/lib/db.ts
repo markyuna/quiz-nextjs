@@ -8,12 +8,6 @@ if (!connectionString) {
   throw new Error("DATABASE_URL no está definida");
 }
 
-const pool = new pg.Pool({
-  connectionString,
-});
-
-const adapter = new PrismaPg(pool);
-
 const globalForPrisma = globalThis as {
   prisma?: PrismaClient;
 };
@@ -21,7 +15,11 @@ const globalForPrisma = globalThis as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    adapter,
+    adapter: new PrismaPg(
+      new pg.Pool({
+        connectionString,
+      })
+    ),
   });
 
 if (process.env.NODE_ENV !== "production") {
