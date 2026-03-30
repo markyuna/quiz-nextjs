@@ -1,15 +1,5 @@
 {
-  "version": 2,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "devCommand": "next dev",
-  "buildCommand": "next build",
-  "builds": [
-    {
-      "src": "src/app/api/**/*.ts",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 10
-      }
-    }
-  ]
+  "buildCommand": "npm run build"
 }
